@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Clare & Geoffrey, le Quiz des tables</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..700,50;1,9..144,300..700,50&family=Figtree:wght@400;500;600&display=swap">
+<style>
+/* Layout : une carte verticale façon menu de mariage ; trois services (Entrée, Plat, Dessert), un classement des tables entre chaque service. */
+:root{
+  --ground:#F2EFE9; --paper:#FBF9F5; --ink:#2A1F2D; --ink-soft:#6E6270; --line:#D9D2CB;
+  --accent:#A94F66; --accent-ink:#FBF9F5; --sage:#6F8C74; --sage-soft:#E3ECE4;
+  --wrong:#B3443F; --wrong-soft:#F3DEDC; --gold:#B8933F; --mine:#F5E6EA;
+  --font-display:"Fraunces",Georgia,"Times New Roman",serif;
+  --font-body:"Figtree",-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;
+  --radius:18px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    color-scheme:dark;
+    --ground:#1B151E; --paper:#271E2B; --ink:#F1EAE6; --ink-soft:#B2A6AE; --line:#473B4B;
+    --accent:#D9798F; --accent-ink:#1B151E; --sage:#8FB295; --sage-soft:#2A3A2D;
+    --wrong:#E07A74; --wrong-soft:#452A2A; --gold:#D4B264; --mine:#3A2630;
+  }
+}
+html,body{height:100%}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.5;
+  padding-inline:16px;padding-block:calc(20px + env(safe-area-inset-top,0px)) calc(20px + env(safe-area-inset-bottom,0px));box-sizing:border-box;-webkit-font-smoothing:antialiased}
+*,*::before,*::after{box-sizing:inherit}
+.app{max-width:480px;margin:0 auto;display:flex;flex-direction:column;gap:14px;min-height:100%}
+.app.wide{max-width:760px}
+h1,h2,h3{font-family:var(--font-display);font-weight:400;margin:0;text-wrap:balance;line-height:1.1}
+.eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);font-weight:600;margin:0}
+button{font:inherit;cursor:pointer;border:0;background:none;color:inherit}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:26px 22px;position:relative;display:flex;flex-direction:column;gap:18px}
+.card::before{content:"";position:absolute;inset:7px;border:1px solid var(--gold);border-radius:calc(var(--radius) - 7px);opacity:.55;pointer-events:none}
+.card > *{position:relative}
+.monogram{font-family:var(--font-display);font-size:64px;font-style:italic;text-align:center;line-height:1;color:var(--accent);font-variation-settings:"SOFT" 50}
+.monogram small{font-size:26px;font-style:normal;color:var(--ink-soft);margin:0 6px;vertical-align:middle}
+.title{text-align:center;font-size:30px}
+.lede{color:var(--ink-soft);text-align:center;margin:0;max-width:36ch;align-self:center}
+.menu{display:grid;gap:8px;border-block:1px solid var(--line);padding-block:14px}
+.menu div{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.menu .course{font-family:var(--font-display);font-size:20px;font-style:italic}
+.menu .count{color:var(--ink-soft);font-size:13px;font-variant-numeric:tabular-nums}
+form{display:flex;flex-direction:column;gap:12px}
+label{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:var(--ink-soft)}
+input{font:inherit;font-size:17px;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--ground);color:var(--ink);width:100%}
+.row{display:grid;grid-template-columns:1fr 110px;gap:10px}
+.btn{padding:14px 18px;border-radius:999px;font-weight:600;font-size:16px;text-align:center;transition:transform .12s}
+.btn:active{transform:scale(.98)}
+.btn[disabled]{opacity:.5;cursor:default}
+.btn-primary{background:var(--accent);color:var(--accent-ink)}
+.btn-ghost{color:var(--accent);border:1px solid var(--line)}
+.tag{align-self:center;font-size:12px;color:var(--gold);border:1px dashed var(--gold);border-radius:999px;padding:4px 12px}
+.notice{font-size:13px;color:var(--ink-soft);background:var(--ground);border-radius:12px;padding:10px 14px;margin:0;text-align:center}
+.notice.err{color:var(--wrong)}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.progress{display:flex;gap:4px;flex:1}
+.progress i{flex:1;height:3px;border-radius:2px;background:var(--line)}
+.progress i.done{background:var(--accent)} .progress i.now{background:var(--gold)}
+.timer{width:44px;height:44px;position:relative;flex:none}
+.timer svg{width:44px;height:44px;transform:rotate(-90deg)}
+.timer circle{fill:none;stroke-width:3} .timer .track{stroke:var(--line)}
+.timer .arc{stroke:var(--accent);stroke-linecap:round;transition:stroke-dashoffset 1s linear}
+.timer span{position:absolute;inset:0;display:grid;place-items:center;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
+.timer.hurry .arc{stroke:var(--wrong)}
+.qtext{font-size:24px}
+.options{display:grid;gap:10px}
+.opt{display:flex;align-items:center;gap:12px;text-align:left;padding:13px 14px;border-radius:14px;border:1px solid var(--line);background:var(--ground);font-size:16px;line-height:1.3;transition:border-color .12s,background .12s}
+.opt b{font-family:var(--font-display);font-style:italic;font-weight:400;color:var(--ink-soft);width:18px;flex:none;font-size:18px}
+.opt:not([disabled]):hover{border-color:var(--accent)}
+.opt.correct{background:var(--sage-soft);border-color:var(--sage)} .opt.wrong{background:var(--wrong-soft);border-color:var(--wrong)} .opt.dim{opacity:.55}
+.verdict{display:flex;flex-direction:column;gap:6px;padding:14px 16px;border-radius:14px;background:var(--ground);border-left:3px solid var(--sage)}
+.verdict.bad{border-left-color:var(--wrong)}
+.verdict strong{font-family:var(--font-display);font-size:19px;font-weight:400}
+.verdict p{margin:0;color:var(--ink-soft);font-size:15px}
+.points{font-variant-numeric:tabular-nums;font-weight:600;color:var(--accent)}
+.interlude{text-align:center;gap:10px;padding-block:40px}
+.interlude .course{font-size:38px;font-style:italic}
+/* Classement */
+.board{display:grid;gap:6px}
+.board .r{display:grid;grid-template-columns:34px 1fr auto;gap:12px;align-items:center;padding:10px 12px;border-radius:12px;border:1px solid transparent}
+.board .r.mine{background:var(--mine);border-color:var(--accent)}
+.board .r.top{border-color:var(--gold)}
+.board .pos{font-family:var(--font-display);font-style:italic;font-size:22px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+.board .r.top .pos{color:var(--gold)}
+.board .team{display:grid;gap:1px;min-width:0}
+.board .team b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.board .team span{font-size:12px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+.board .pts{font-family:var(--font-display);font-size:24px;font-variant-numeric:tabular-nums}
+.board .empty{color:var(--ink-soft);text-align:center;padding:20px;font-style:italic;font-family:var(--font-display);font-size:18px}
+.live{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-soft)}
+.live i{width:7px;height:7px;border-radius:50%;background:var(--sage);display:inline-block}
+.live.off i{background:var(--line)}
+.placecard{border:1px solid var(--line);border-radius:14px;padding:22px 18px;text-align:center;display:grid;gap:8px;background:var(--ground)}
+.placecard .who{font-family:var(--font-display);font-size:28px;font-style:italic}
+.placecard .big{font-family:var(--font-display);font-size:56px;line-height:1;font-variant-numeric:tabular-nums;color:var(--accent)}
+.placecard .rank{font-size:14px;color:var(--ink-soft)}
+/* Projection */
+.wide .board .r{grid-template-columns:48px 1fr auto;padding:14px 18px;font-size:20px}
+.wide .board .pos{font-size:32px} .wide .board .pts{font-size:34px} .wide .board .team span{font-size:14px}
+.qr{display:grid;place-items:center;gap:8px;padding:14px;background:#fff;border-radius:14px;align-self:center}
+.url{font-size:12px;word-break:break-all;color:var(--ink-soft);text-align:center}
+.split{display:grid;grid-template-columns:1fr auto;gap:22px;align-items:start}
+@media (max-width:620px){.split{grid-template-columns:1fr}.qr{justify-self:center}}
+footer{text-align:center;font-size:12px;color:var(--ink-soft);display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+footer button{text-decoration:underline;text-underline-offset:3px;font-size:12px}
+.fade{animation:fade .35s ease}
+@keyframes fade{from{opacity:.4;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){.fade{animation:none}.timer .arc{transition:none}}
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+/* ============================================================
+   CONFIGURATION
+   SUPABASE : URL du projet et clé publique (anon / publishable).
+   Tant que l'URL est vide, le jeu tourne en mode démo local :
+   une seule table, pas de classement partagé.
+   ============================================================ */
+const SUPABASE = { url: "", key: "" };
+
+const DEMO = true;                 // affiche « trame à personnaliser » sur l'accueil
+const COUPLE = { her: "Clare", him: "Geoffrey" };
+const SECONDS = 45;                // temps de réponse par question (débat compris)
+const BASE_POINTS = 100;           // bonne réponse
+const SPEED_POINTS = 50;           // bonus maximal de rapidité
+const PER_COURSE = 5;              // classement affiché toutes les 5 questions
+
+/* ---- Questions : `correct` = index (0 à 3) de la bonne réponse ---- */
+const COURSES = [
+  { name: "Entrée", subtitle: "Les débuts", questions: [
+    { q: "Où Clare et Geoffrey se sont-ils rencontrés ?", options: ["Dans un bar", "Au travail", "Sur une application", "Par des amis communs"], correct: 3, anecdote: "À compléter : la scène de la rencontre en une phrase." },
+    { q: "En quelle année ont-ils échangé leur premier baiser ?", options: ["2015", "2017", "2019", "2021"], correct: 1, anecdote: "À compléter : le lieu ou la circonstance." },
+    { q: "Qui a fait le premier pas ?", options: ["Clare", "Geoffrey", "Les deux en même temps", "Personne ne s'en souvient"], correct: 0, anecdote: "À compléter : la version de Clare et celle de Geoffrey ne concordent pas forcément…" },
+    { q: "Quelle a été leur première destination de vacances en amoureux ?", options: ["Lisbonne", "La Corse", "Rome", "Les Alpes"], correct: 2, anecdote: "À compléter : une anecdote de ce premier voyage." },
+    { q: "Quel surnom Geoffrey donne-t-il à Clare ?", options: ["Ma puce", "Chaton", "Boss", "Clarinette"], correct: 3, anecdote: "À compléter : l'origine du surnom." },
+  ]},
+  { name: "Plat", subtitle: "La vie à deux", questions: [
+    { q: "Qui cuisine le plus souvent à la maison ?", options: ["Clare", "Geoffrey", "Le livreur", "Belle-maman"], correct: 1, anecdote: "À compléter : le plat signature du chef." },
+    { q: "Qui est systématiquement en retard ?", options: ["Clare", "Geoffrey", "Les deux", "Aucun, ils sont parfaits"], correct: 0, anecdote: "À compléter : le record de retard à battre." },
+    { q: "Quel film ont-ils vu le plus de fois ensemble ?", options: ["Love Actually", "Le Seigneur des anneaux", "Intouchables", "Dirty Dancing"], correct: 0, anecdote: "À compléter : combien de fois, et qui s'endort avant la fin." },
+    { q: "Qui tient le volant sur les longs trajets ?", options: ["Clare", "Geoffrey", "Ils alternent", "Ils prennent le train"], correct: 1, anecdote: "À compléter : qui est le pire copilote." },
+    { q: "Combien de temps ont-ils vécu ensemble avant les fiançailles ?", options: ["Moins d'un an", "Deux ans", "Trois ans", "Plus de cinq ans"], correct: 2, anecdote: "À compléter : le premier appartement, le premier meuble monté ensemble…" },
+  ]},
+  { name: "Dessert", subtitle: "Le grand jour", questions: [
+    { q: "Où Geoffrey a-t-il fait sa demande ?", options: ["Sur une plage", "Au sommet d'une montagne", "Dans leur cuisine", "Au restaurant"], correct: 1, anecdote: "À compléter : la bague était-elle cachée depuis longtemps ?" },
+    { q: "Qui a pleuré en premier le jour de la demande ?", options: ["Clare", "Geoffrey", "La mère de Clare", "Le chien"], correct: 1, anecdote: "À compléter : combien de mouchoirs." },
+    { q: "Combien d'invités sont présents ce soir ?", options: ["Environ 60", "Environ 85", "Environ 100", "Environ 120"], correct: 1, anecdote: "À compléter : le nombre exact." },
+    { q: "Sur quelle chanson vont-ils ouvrir le bal ?", options: ["Perfect, Ed Sheeran", "La Vie en rose", "Can't Help Falling in Love", "Une surprise"], correct: 3, anecdote: "À compléter : vous le saurez dans quelques minutes." },
+    { q: "Quel est leur grand projet pour l'année qui vient ?", options: ["Un voyage au bout du monde", "Un chien", "Une maison", "Un bébé"], correct: 0, anecdote: "À compléter : la destination ou le projet, si ce n'est pas secret." },
+  ]},
+];
+
+/* ============================================================ */
+const ALL = COURSES.flatMap((c, ci) => c.questions.map((q, qi) => ({ ...q, course: ci, inCourse: qi })));
+const MAX = ALL.length * (BASE_POINTS + SPEED_POINTS);
+const RANKS = [
+  [0.85, "Table des témoins", "Vous connaissez ce couple mieux qu'eux-mêmes."],
+  [0.65, "Premier cercle", "On vous invite aux anniversaires sans hésiter."],
+  [0.45, "Cousins attachants", "Vous avez l'essentiel. Le reste s'apprend au bar."],
+  [0.25, "Pièces rapportées", "Encore quelques repas de famille et ce sera bon."],
+  [0,    "Table du fond", "Vous êtes venus pour la fête, et c'est très bien aussi."],
+];
+const LETTERS = ["a", "b", "c", "d"];
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+/* ---------- Stockage : Supabase, ou démo locale ---------- */
+const sb = (SUPABASE.url && window.supabase) ? window.supabase.createClient(SUPABASE.url, SUPABASE.key) : null;
+const store = sb ? {
+  live: true,
+  async createTeam(name, table_no){
+    const { data, error } = await sb.from("teams").insert({ name, table_no: table_no || null }).select("id,name,table_no").single();
+    if (error) throw error; return data;
+  },
+  async myAnswers(team_id){
+    const { data, error } = await sb.from("answers").select("question_idx,choice,correct,points").eq("team_id", team_id).order("question_idx");
+    if (error) throw error; return data;
+  },
+  async addAnswer(row){
+    const { error } = await sb.from("answers").insert(row);
+    if (error && error.code !== "23505") throw error;   // 23505 : déjà répondu (double appui)
+  },
+  async leaderboard(){
+    const { data, error } = await sb.from("teams").select("id,name,table_no,answers(points)");
+    if (error) throw error;
+    return data.map(t => ({ id: t.id, name: t.name, table_no: t.table_no, score: (t.answers || []).reduce((s, a) => s + a.points, 0), done: (t.answers || []).length }));
+  },
+  subscribe(cb){
+    const ch = sb.channel("quiz-live")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "answers" }, cb)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "teams" }, cb)
+      .subscribe();
+    return () => sb.removeChannel(ch);
+  },
+} : {
+  live: false,
+  _get(){ try{ return JSON.parse(localStorage.getItem("cg-demo") || '{"teams":[],"answers":[]}'); }catch(e){ return { teams: [], answers: [] }; } },
+  _set(d){ try{ localStorage.setItem("cg-demo", JSON.stringify(d)); }catch(e){} },
+  async createTeam(name, table_no){ const d = this._get(); const t = { id: "local-" + Date.now().toString(36), name, table_no: table_no || null }; d.teams.push(t); this._set(d); return t; },
+  async myAnswers(team_id){ return this._get().answers.filter(a => a.team_id === team_id).sort((a, b) => a.question_idx - b.question_idx); },
+  async addAnswer(row){ const d = this._get(); if (!d.answers.some(a => a.team_id === row.team_id && a.question_idx === row.question_idx)) { d.answers.push(row); this._set(d); } },
+  async leaderboard(){ const d = this._get(); return d.teams.map(t => { const as = d.answers.filter(a => a.team_id === t.id); return { ...t, score: as.reduce((s, a) => s + a.points, 0), done: as.length }; }); },
+  subscribe(){ return () => {}; },
+};
+
+/* ---------- État ---------- */
+const app = document.getElementById("app");
+let state = { screen: "home", team: null, i: 0, score: 0, left: SECONDS, error: "" };
+let tick = null, unsub = null, poll = null;
+
+function saveTeam(t){ try{ localStorage.setItem("cg-team", JSON.stringify(t)); }catch(e){} }
+function loadTeam(){ try{ return JSON.parse(localStorage.getItem("cg-team") || "null"); }catch(e){ return null; } }
+function forgetTeam(){ try{ localStorage.removeItem("cg-team"); }catch(e){} }
+
+function screenFor(i){ return i >= ALL.length ? "end" : (i % PER_COURSE === 0 ? (i === 0 ? "interlude" : "board") : "question"); }
+
+function stopLive(){ if (unsub) { unsub(); unsub = null; } clearInterval(poll); poll = null; }
+
+function render(){
+  clearInterval(tick); tick = null; stopLive();
+  app.classList.remove("wide");
+  if (location.hash === "#classement") return renderProjection();
+  ({ home: renderHome, interlude: renderInterlude, question: renderQuestion, board: renderBoard, end: renderEnd }[state.screen] || renderHome)();
+  window.scrollTo(0, 0);
+}
+
+/* ---------- Accueil ---------- */
+function renderHome(){
+  app.innerHTML = `
+  <section class="card fade">
+    <div class="monogram">C<small>&amp;</small>G</div>
+    <p class="eyebrow" style="text-align:center">Le quiz des tables</p>
+    <h1 class="title">Quelle table connaît le mieux ${esc(COUPLE.her)} et ${esc(COUPLE.him)} ?</h1>
+    <p class="lede">Un téléphone par table. ${ALL.length} questions en trois services, ${SECONDS} secondes pour se mettre d'accord. Classement des tables après chaque service.</p>
+    ${DEMO ? `<span class="tag">Trame à personnaliser</span>` : ""}
+    ${store.live ? "" : `<p class="notice">Mode démo : le classement partagé n'est pas encore branché.</p>`}
+    <div class="menu">
+      ${COURSES.map(c => `<div><span class="course">${esc(c.name)} <span style="font-style:normal;font-size:15px;color:var(--ink-soft)">· ${esc(c.subtitle)}</span></span><span class="count">${c.questions.length} questions</span></div>`).join("")}
+    </div>
+    <form id="start">
+      <div class="row">
+        <label>Nom de la table<input id="name" name="name" required maxlength="40" placeholder="Les Cousins du Nord" autocomplete="off"></label>
+        <label>Numéro<input id="table" name="table" maxlength="12" placeholder="7" inputmode="numeric"></label>
+      </div>
+      ${state.error ? `<p class="notice err">${esc(state.error)}</p>` : ""}
+      <button class="btn btn-primary" type="submit" id="submit">Passer à table</button>
+    </form>
+  </section>
+  <footer><button type="button" id="to-proj">Classement sur grand écran</button></footer>`;
+  document.getElementById("start").addEventListener("submit", async e => {
+    e.preventDefault();
+    const name = document.getElementById("name").value.trim();
+    const table = document.getElementById("table").value.trim();
+    if (!name) { document.getElementById("name").focus(); return; }
+    const btn = document.getElementById("submit"); btn.disabled = true; btn.textContent = "Un instant…";
+    try {
+      const team = await store.createTeam(name, table);
+      saveTeam(team);
+      state = { ...state, team, i: 0, score: 0, left: SECONDS, error: "", screen: "interlude" };
+      render();
+    } catch (err) {
+      state.error = "Impossible d'inscrire la table. Vérifiez le réseau et réessayez."; console.error(err); render();
+    }
+  });
+  document.getElementById("to-proj").addEventListener("click", () => { location.hash = "classement"; });
+}
+
+/* ---------- Interlude ---------- */
+function renderInterlude(){
+  const c = COURSES[ALL[state.i].course];
+  app.innerHTML = `
+  <section class="card interlude fade">
+    <p class="eyebrow">${state.i === 0 ? "Premier service" : "Service suivant"} · ${esc(state.team.name)}</p>
+    <h2 class="course">${esc(c.name)}</h2>
+    <p class="lede">${esc(c.subtitle)} · ${c.questions.length} questions</p>
+    <button class="btn btn-primary" id="go" style="margin-top:14px">${state.i === 0 ? "C'est parti" : "On enchaîne"}</button>
+  </section>`;
+  document.getElementById("go").addEventListener("click", () => { state.screen = "question"; state.left = SECONDS; render(); });
+}
+
+/* ---------- Question ---------- */
+function renderQuestion(){
+  const q = ALL[state.i];
+  const CIRC = 2 * Math.PI * 19;
+  app.innerHTML = `
+  <section class="card fade">
+    <div class="topbar">
+      <div class="progress">${ALL.map((_, k) => `<i class="${k < state.i ? "done" : k === state.i ? "now" : ""}"></i>`).join("")}</div>
+      <div class="timer" id="timer"><svg viewBox="0 0 44 44"><circle class="track" cx="22" cy="22" r="19"/><circle class="arc" id="arc" cx="22" cy="22" r="19" stroke-dasharray="${CIRC}" stroke-dashoffset="0"/></svg><span id="left">${state.left}</span></div>
+    </div>
+    <p class="eyebrow">${esc(COURSES[q.course].name)} · question ${q.inCourse + 1} sur ${COURSES[q.course].questions.length}</p>
+    <h2 class="qtext">${esc(q.q)}</h2>
+    <div class="options" id="options">
+      ${q.options.map((o, k) => `<button class="opt" type="button" data-k="${k}"><b>${LETTERS[k]}.</b><span>${esc(o)}</span></button>`).join("")}
+    </div>
+    <div id="verdict"></div>
+  </section>`;
+  const arc = document.getElementById("arc"), leftEl = document.getElementById("left"), timerEl = document.getElementById("timer");
+  const setArc = () => { arc.style.strokeDashoffset = CIRC * (1 - state.left / SECONDS); leftEl.textContent = state.left; timerEl.classList.toggle("hurry", state.left <= 8); };
+  setArc();
+  tick = setInterval(() => { state.left -= 1; setArc(); if (state.left <= 0) answer(-1); }, 1000);
+  document.getElementById("options").addEventListener("click", e => { const b = e.target.closest(".opt"); if (!b || b.disabled) return; answer(+b.dataset.k); });
+
+  async function answer(k){
+    clearInterval(tick); tick = null;
+    const ok = k === q.correct;
+    const pts = ok ? BASE_POINTS + Math.round(SPEED_POINTS * Math.max(0, state.left) / SECONDS) : 0;
+    document.querySelectorAll(".opt").forEach((b, idx) => { b.disabled = true; b.classList.add(idx === q.correct ? "correct" : idx === k ? "wrong" : "dim"); });
+    const last = state.i === ALL.length - 1;
+    const boardNext = !last && (state.i + 1) % PER_COURSE === 0;
+    document.getElementById("verdict").innerHTML = `
+      <div class="verdict ${ok ? "" : "bad"} fade">
+        <strong>${ok ? `Exact, <span class="points">+${pts}</span>` : k === -1 ? "Trop tard !" : "Raté."}</strong>
+        <p>${esc(q.anecdote)}</p>
+      </div>
+      <p class="notice" id="saving" style="margin-top:10px">Enregistrement…</p>
+      <button class="btn btn-primary" id="next" style="margin-top:12px;width:100%" disabled>${last ? "Classement final" : boardNext ? "Voir le classement" : "Question suivante"}</button>`;
+    try {
+      await store.addAnswer({ team_id: state.team.id, question_idx: state.i, choice: k, correct: ok, points: pts });
+      state.score += pts;
+      document.getElementById("saving").remove();
+    } catch (err) {
+      console.error(err);
+      state.score += pts;
+      const s = document.getElementById("saving"); s.textContent = "Réseau capricieux : le point est compté ici, il sera peut-être absent du classement."; s.classList.add("err");
+    }
+    const next = document.getElementById("next"); next.disabled = false;
+    next.addEventListener("click", () => { state.i += 1; state.left = SECONDS; state.screen = screenFor(state.i); render(); });
+    next.focus({ preventScroll: true });
+  }
+}
+
+/* ---------- Classement (composant partagé) ---------- */
+function boardHTML(rows, mineId, limit){
+  if (!rows.length) return `<div class="empty">Aucune table inscrite pour le moment.</div>`;
+  rows = [...rows].sort((a, b) => b.score - a.score || b.done - a.done || a.name.localeCompare(b.name));
+  const shown = limit ? rows.slice(0, limit) : rows;
+  const mine = rows.findIndex(r => r.id === mineId);
+  let html = shown.map((r, k) => rowHTML(r, k, mineId)).join("");
+  if (mineId && mine >= shown.length) html += `<div class="empty" style="padding:6px">…</div>` + rowHTML(rows[mine], mine, mineId);
+  return html;
+}
+function rowHTML(r, k, mineId){
+  return `<div class="r ${r.id === mineId ? "mine" : ""} ${k === 0 && r.score > 0 ? "top" : ""}">
+    <span class="pos">${k + 1}</span>
+    <span class="team"><b>${esc(r.name)}</b><span>${r.table_no ? `table ${esc(r.table_no)} · ` : ""}${r.done}/${ALL.length} questions</span></span>
+    <span class="pts">${r.score}</span></div>`;
+}
+function liveBoard(el, mineId, limit, onRows){
+  let busy = false;
+  const refresh = async () => {
+    if (busy) return; busy = true;
+    try { const rows = await store.leaderboard(); el.innerHTML = boardHTML(rows, mineId, limit); if (onRows) onRows(rows); }
+    catch (err) { console.error(err); el.innerHTML = `<div class="empty">Classement indisponible pour l'instant.</div>`; }
+    busy = false;
+  };
+  refresh();
+  unsub = store.subscribe(() => refresh());
+  poll = setInterval(refresh, 10000);
+}
+
+function renderBoard(){
+  const prev = COURSES[ALL[state.i - 1].course];
+  app.innerHTML = `
+  <section class="card fade">
+    <div class="topbar"><p class="eyebrow">Classement après ${prev.name === "Entrée" ? "l'" : "le "}${esc(prev.name).toLowerCase()}</p><span class="live ${store.live ? "" : "off"}"><i></i>${store.live ? "en direct" : "démo"}</span></div>
+    <h2 class="title" style="text-align:left">Où en sont les tables ?</h2>
+    <div class="board" id="board"><div class="empty">Chargement…</div></div>
+    <p class="notice">Les tables n'avancent pas toutes au même rythme : le nombre de questions jouées est indiqué sous chaque nom.</p>
+    <button class="btn btn-primary" id="go">Service suivant</button>
+  </section>`;
+  liveBoard(document.getElementById("board"), state.team.id, 8);
+  document.getElementById("go").addEventListener("click", () => { state.screen = "interlude"; render(); });
+}
+
+function renderEnd(){
+  const ratio = state.score / MAX;
+  const [, rank, line] = RANKS.find(r => ratio >= r[0]);
+  app.innerHTML = `
+  <section class="card fade">
+    <div class="placecard">
+      <p class="eyebrow">Votre table</p>
+      <div class="who">${esc(state.team.name)}${state.team.table_no ? ` <span style="font-size:15px;font-style:normal;color:var(--ink-soft)">· table ${esc(state.team.table_no)}</span>` : ""}</div>
+      <div class="big">${state.score}</div>
+      <div class="rank"><strong style="color:var(--ink)">${rank}</strong><br>${line}</div>
+    </div>
+    <div class="topbar"><p class="eyebrow">Classement final</p><span class="live ${store.live ? "" : "off"}"><i></i>${store.live ? "en direct" : "démo"}</span></div>
+    <div class="board" id="board"><div class="empty">Chargement…</div></div>
+    <p class="notice">Le classement continue de bouger tant que des tables jouent encore.</p>
+    <button class="btn btn-ghost" id="reset">Inscrire une autre table sur ce téléphone</button>
+  </section>`;
+  liveBoard(document.getElementById("board"), state.team.id, 0);
+  document.getElementById("reset").addEventListener("click", () => { forgetTeam(); state = { screen: "home", team: null, i: 0, score: 0, left: SECONDS, error: "" }; render(); });
+}
+
+/* ---------- Projection grand écran ---------- */
+function renderProjection(){
+  app.classList.add("wide");
+  const url = location.origin + location.pathname;
+  app.innerHTML = `
+  <section class="card fade">
+    <div class="split">
+      <div style="display:grid;gap:10px">
+        <div class="monogram" style="text-align:left;font-size:54px">C<small>&amp;</small>G</div>
+        <h1 class="title" style="text-align:left">Le quiz des tables</h1>
+        <p class="lede" style="text-align:left;align-self:start">Scannez le code avec un téléphone par table, entrez le nom de votre table et jouez. Le classement se met à jour tout seul.</p>
+        <span class="live ${store.live ? "" : "off"}"><i></i>${store.live ? "en direct" : "mode démo"} · <span id="count">0</span> tables inscrites</span>
+      </div>
+      <div class="qr" id="qr"></div>
+    </div>
+    <div class="board" id="board"><div class="empty">Chargement…</div></div>
+    <p class="url">${esc(url)}</p>
+  </section>
+  <footer><button type="button" id="back">Retour au jeu</button></footer>`;
+  try { if (window.QRCode) new QRCode(document.getElementById("qr"), { text: url, width: 180, height: 180, colorDark: "#2A1F2D", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.M }); } catch (e) {}
+  liveBoard(document.getElementById("board"), null, 0, rows => { document.getElementById("count").textContent = rows.length; });
+  document.getElementById("back").addEventListener("click", () => { history.replaceState(null, "", location.pathname); render(); });
+}
+
+/* ---------- Démarrage : reprise de la table si le téléphone recharge ---------- */
+window.addEventListener("hashchange", render);
+(async function start(){
+  const team = loadTeam();
+  if (team) {
+    try {
+      const answers = await store.myAnswers(team.id);
+      state.team = team; state.i = answers.length; state.score = answers.reduce((s, a) => s + a.points, 0);
+      state.screen = screenFor(state.i);
+    } catch (err) { console.error(err); state.screen = "home"; }
+  }
+  render();
+})();
+</script>
+</body>
+</html>
