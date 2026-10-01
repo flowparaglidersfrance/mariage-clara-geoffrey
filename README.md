@@ -19,5 +19,6 @@ truncate public.answers, public.teams;
 ## Hébergement
 
 - Site : https://flowparaglidersfrance.github.io/mariage-clare-geoffrey/ (GitHub Pages, branche `main`).
-- Base : projet Supabase « referenciel » (`fsdupjblgtojwhwuxzod`), tables `teams` et `answers`.
-- Les deux fichiers `*_existant_referenciel.sql` sont vides : ils alignent l'historique local sur les migrations déjà présentes dans ce projet.
+- Base : projet Supabase dédié « mariage-clare-geoffrey » (`hjwnztxsalikcfzsrjds`), tables `teams` et `answers`. Le mot de passe de la base est dans `.env.local` (non versionné).
+- Les deux fichiers `*_existant_referenciel.sql` sont vides et sans effet : ils restent uniquement parce qu'ils figurent déjà dans l'historique des migrations du projet.
+- Appliquer une nouvelle migration : `supabase db push` (projet lié via `supabase/.temp`).

@@ -1,2 +1,2 @@
--- Migration déjà appliquée sur le projet Supabase « referenciel » avant le quiz.
--- Fichier vide volontairement : il n'existe que pour aligner l'historique local.
+-- Fichier vide volontairement, sans effet sur la base.
+-- Il figure dans l'historique des migrations du projet et doit rester en place.
