@@ -1,4 +1,4 @@
-# Clare & Geoffrey, le quiz des tables
+# Clara & Geoffrey, le quiz des tables
 
 Jeu de mariage : un téléphone par table, 15 questions sur les mariés en trois services, classement des tables en direct.
 
@@ -21,7 +21,7 @@ Depuis l'espace animateur, onglet Réglages. Efface les tables et les scores, co
 
 ## Hébergement
 
-- Site : https://flowparaglidersfrance.github.io/mariage-clare-geoffrey/ (GitHub Pages, branche `main`).
-- Base : projet Supabase dédié « mariage-clare-geoffrey » (`hjwnztxsalikcfzsrjds`), tables `teams` et `answers`. Le mot de passe de la base est dans `.env.local` (non versionné).
+- Site : https://flowparaglidersfrance.github.io/mariage-clara-geoffrey/ (GitHub Pages, branche `main`).
+- Base : projet Supabase dédié « mariage-clara-geoffrey » (`hjwnztxsalikcfzsrjds`), tables `teams` et `answers`. Le mot de passe de la base est dans `.env.local` (non versionné).
 - Les deux fichiers `*_existant_referenciel.sql` sont vides et sans effet : ils restent uniquement parce qu'ils figurent déjà dans l'historique des migrations du projet.
 - Appliquer une nouvelle migration : `supabase db push` (projet lié via `supabase/.temp`).

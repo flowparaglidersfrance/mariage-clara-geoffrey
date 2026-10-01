@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Clare & Geoffrey, le Quiz des tables</title>
+<title>Clara & Geoffrey, le Quiz des tables</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..700,50;1,9..144,300..700,50&family=Figtree:wght@400;500;600&display=swap">
 <style>
@@ -61,7 +61,23 @@ textarea{min-height:70px;resize:vertical}
 .notice.err{color:var(--wrong)}
 .pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:4px 10px;border-radius:999px;border:1px solid var(--line);color:var(--ink-soft)}
 .pill i{width:7px;height:7px;border-radius:50%;background:var(--line);display:inline-block}
-.pill.lobby i{background:var(--gold)} .pill.question i{background:var(--accent)} .pill.reveal i{background:var(--sage)} .pill.board i{background:var(--sage)} .pill.finished i{background:var(--ink-soft)} .pill.paused i{background:var(--gold)}
+.pill.lobby i{background:var(--gold)} .pill.question i{background:var(--accent)} .pill.reveal i{background:var(--sage)} .pill.board i{background:var(--sage)} .pill.finished i{background:var(--ink-soft)} .pill.paused i{background:var(--gold)} .pill.suspense i{background:var(--gold)}
+.media{display:grid;place-items:center}
+.media img,.media video,.media iframe{max-width:100%;max-height:60vh;border-radius:14px;border:1px solid var(--line);background:#000}
+.media iframe{width:100%;aspect-ratio:16/9;max-height:none}
+.screen .media img,.screen .media video{max-height:55vh}
+.votes{display:grid;gap:8px}
+.vote{display:grid;grid-template-columns:22px 1fr auto;gap:10px;align-items:center}
+.vote b{font-family:var(--font-display);font-style:italic;font-weight:400;color:var(--ink-soft)}
+.vote .track{height:14px;border-radius:7px;background:var(--line);overflow:hidden}
+.vote .fill{height:100%;background:var(--accent);border-radius:7px;transition:width .6s ease;min-width:2px}
+.vote span{font-variant-numeric:tabular-nums;font-size:14px;color:var(--ink-soft)}
+.screen .vote .track{height:22px;border-radius:11px}
+.couple{text-align:center;padding:22px;border-radius:14px;border:1px dashed var(--gold);display:grid;gap:6px}
+.couple h3{font-size:clamp(24px,3.5vw,40px);font-style:italic;color:var(--accent)}
+.mediabox{display:grid;gap:8px}
+.mediabox .preview{display:flex;gap:10px;align-items:center;font-size:14px;color:var(--ink-soft)}
+.mediabox .preview img,.mediabox .preview video{width:72px;height:72px;object-fit:cover;border-radius:10px;border:1px solid var(--line)}
 .live{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-soft)}
 .live i{width:7px;height:7px;border-radius:50%;background:var(--sage);display:inline-block}
 .live.off i{background:var(--wrong)}
@@ -187,7 +203,7 @@ footer a,footer button{color:inherit;text-decoration:underline;text-underline-of
    CONFIGURATION
    ============================================================ */
 const SUPABASE = { url: "https://hjwnztxsalikcfzsrjds.supabase.co", key: "sb_publishable_i4an1uO0V54b8cLFOzk4zA_be39buWb" };
-const COUPLE = { her: "Clare", him: "Geoffrey" };
+const COUPLE = { her: "Clara", him: "Geoffrey" };
 const COURSES = ["Entrée", "Plat", "Dessert"];
 const COURSE_SUB = { "Entrée": "Les débuts", "Plat": "La vie à deux", "Dessert": "Le grand jour" };
 const SECONDS_CHOICES = [30, 45, 60, 90];
@@ -198,7 +214,7 @@ const RANKS = [
   [0.25, "Pièces rapportées", "Encore quelques repas de famille et ce sera bon."],
   [0,    "Table du fond", "Vous êtes venus pour la fête, et c'est très bien aussi."],
 ];
-const STATUS_LABEL = { lobby: "En attente", question: "Question ouverte", reveal: "Réponse révélée", board: "Classement", finished: "Partie terminée", paused: "En pause" };
+const STATUS_LABEL = { lobby: "En attente", question: "Question ouverte", suspense: "Réponses closes", reveal: "Réponse révélée", board: "Classement", finished: "Partie terminée", paused: "En pause" };
 
 /* ============================================================
    Outils
@@ -248,7 +264,7 @@ function remaining(game){
 
 /* ---- Données partagées : état de la partie, questions publiques, classement ---- */
 const Live = {
-  game: null, questions: [], board: [], counts: {}, connected: false,
+  game: null, questions: [], board: [], counts: {}, choices: {}, connected: false,
   listeners: new Set(), channel: null, pollTimer: null,
   on(fn){ this.listeners.add(fn); return () => this.listeners.delete(fn); },
   emit(){ for (const fn of this.listeners) { try { fn(); } catch (e) { console.error(e); } } },
@@ -258,11 +274,12 @@ const Live = {
   },
   async loadQuestions(){ const { data } = await sb.from("questions_public").select("*").order("position"); if (data) { this.questions = data; this.emit(); } },
   async loadBoard(){
-    const [{ data: b }, { data: c }] = await Promise.all([sb.from("leaderboard").select("*"), sb.from("answer_counts").select("*")]);
-    const prev = JSON.stringify([this.board, this.counts]);
+    const [{ data: b }, { data: c }, { data: v }] = await Promise.all([sb.from("leaderboard").select("*"), sb.from("answer_counts").select("*"), sb.from("choice_counts").select("*")]);
+    const prev = JSON.stringify([this.board, this.counts, this.choices]);
     if (b) this.board = b.sort((x, y) => y.score - x.score || y.answered - x.answered || x.name.localeCompare(y.name));
     if (c) this.counts = Object.fromEntries(c.map(r => [r.question_id, r.answered]));
-    if (JSON.stringify([this.board, this.counts]) !== prev) this.emit();
+    if (v) { this.choices = {}; for (const r of v) { (this.choices[r.question_id] ||= {})[r.choice] = r.n; } }
+    if (JSON.stringify([this.board, this.counts, this.choices]) !== prev) this.emit();
   },
   async start(){
     await Promise.all([this.loadGame(), this.loadQuestions(), this.loadBoard(), syncClock()]);
@@ -328,10 +345,30 @@ function rowHTML(r, k, mineId){
     <span class="team"><b>${esc(r.name)}</b><span>${r.table_no ? `table ${esc(r.table_no)} · ` : ""}${r.answered} réponse${r.answered > 1 ? "s" : ""}</span></span>
     <span class="pts">${r.score}</span></div>`;
 }
+const SUSPENSE_LINES = [
+  "Roulement de tambour…",
+  "Les enveloppes sont scellées.",
+  "Le jury délibère. Le jury, c'est Clara.",
+  "Personne ne bouge, la réponse arrive.",
+  "Dernier moment pour changer d'avis. Trop tard.",
+  "Les paris sont clos, le croupier range ses jetons.",
+];
+function suspenseLine(){ const q = Live.current(); const t = q ? q.position : 0; return SUSPENSE_LINES[t % SUSPENSE_LINES.length]; }
+function mediaHTML(r){
+  if (!r || !r.media_url) return "";
+  if (r.media_type === "youtube") { const id = youtubeId(r.media_url); return id ? `<div class="media"><iframe src="https://www.youtube.com/embed/${id}?autoplay=1&rel=0" allow="autoplay; encrypted-media" allowfullscreen title="Vidéo"></iframe></div>` : ""; }
+  if (r.media_type === "video") return `<div class="media"><video src="${esc(r.media_url)}" controls autoplay playsinline></video></div>`;
+  return `<div class="media"><img src="${esc(r.media_url)}" alt=""></div>`;
+}
+function youtubeId(url){ const m = String(url).match(/(?:youtu\.be\/|v=|\/shorts\/|\/embed\/)([A-Za-z0-9_-]{11})/); return m ? m[1] : null; }
+function votesHTML(q){
+  const counts = Live.choices[q.id] || {}; const total = Object.values(counts).reduce((a, b) => a + b, 0) || 1;
+  return `<div class="votes">${q.options.map((o, k) => { const n = counts[k] || 0; return `<div class="vote"><b>${LETTERS[k]}.</b><div class="track"><div class="fill" style="width:${Math.round(100 * n / total)}%"></div></div><span>${n} table${n > 1 ? "s" : ""}</span></div>`; }).join("")}</div>`;
+}
 const PAUSE_JOKES = [
   "L'animateur est parti se resservir une coupe. Le chrono aussi.",
   "Geoffrey vérifie que les alliances sont toujours là.",
-  "Clare a demandé une retouche de rouge à lèvres. On attend.",
+  "Clara a demandé une retouche de rouge à lèvres. On attend.",
   "Les mariés négocient encore un détail : qui fera la vaisselle.",
   "L'animateur cherche ses lunettes. Elles sont sur sa tête.",
   "Pause réglementaire : le témoin a perdu son discours.",
@@ -382,6 +419,7 @@ const PlayerView = {
     if (g.status === "finished") return this.finished(app, team);
     if (g.status === "lobby" || !q) return this.lobby(app, team);
     if (g.status === "question") return this.question(app, g, q, team);
+    if (g.status === "suspense") return this.suspense(app, g, q, team);
     if (g.status === "reveal") return this.reveal(app, q, team);
     if (g.status === "board") return this.board(app, q, team);
   },
@@ -467,6 +505,18 @@ const PlayerView = {
     });
   },
 
+  suspense(app, g, q, team){
+    const mine = Player.answered()[q.id];
+    app.innerHTML = `
+    <section class="card menu-card fade">
+      <div><p class="eyebrow">${esc(courseTitle(q))}</p><p class="eyebrow" style="color:var(--accent)">Question ${Live.idx() + 1} sur ${Live.questions.length}</p></div>
+      <h2 class="qtext">${esc(q.text)}</h2>
+      ${mine !== undefined ? `<p class="notice">Votre table a répondu <strong>${LETTERS[mine]}. ${esc(q.options[mine])}</strong></p>` : `<p class="notice err">Votre table n'a pas répondu à temps.</p>`}
+      ${g.ask_couple ? `<div class="couple"><p class="eyebrow">La parole aux mariés</p><h3>${esc(COUPLE.her)}, ${esc(COUPLE.him)}, votre réponse ?</h3></div>` : `<div class="wait" style="padding-block:10px"><h2 class="course" style="font-size:26px">${esc(suspenseLine())}</h2><div class="pulse" style="margin-top:10px"></div></div>`}
+      <p class="lede" style="font-size:13px">Toutes les réponses sont là. Regardez le grand écran.</p>
+    </section>`;
+  },
+
   async loadReveal(q, team){
     if (Player.reveal[q.id] || Player.revealing === q.id) return;
     Player.revealing = q.id;
@@ -488,7 +538,7 @@ const PlayerView = {
       ${r ? `<div class="verdict ${r.my_correct ? "" : "bad"} fade">
         <strong>${r.my_choice === null ? "Pas de réponse de votre table." : r.my_correct ? `Exact, <span class="points">+${r.my_points}</span>` : "Raté."}</strong>
         ${r.anecdote ? `<p>${esc(r.anecdote)}</p>` : ""}
-      </div>` : `<p class="notice">Révélation…</p>`}
+      </div>${mediaHTML(r)}` : `<p class="notice">Révélation…</p>`}
       <p class="notice">L'animateur enchaîne dans un instant.</p>
     </section>`;
   },
@@ -581,6 +631,19 @@ const ScreenView = {
       </section>`;
       return;
     }
+    if (g.status === "suspense") {
+      const answered = Live.counts[q.id] || 0;
+      app.innerHTML = `
+      <section class="card menu-card fade">
+        <div><p class="eyebrow">${esc(courseTitle(q))}</p><h2 style="font-size:22px;color:var(--accent)">Question ${Live.idx() + 1} sur ${Live.questions.length}</h2></div>
+        <h1 class="qtext">${esc(q.text)}</h1>
+        <div class="options">${q.options.map((o, k) => `<div class="opt"><b>${LETTERS[k]}.</b><span>${esc(o)}</span></div>`).join("")}</div>
+        <p class="eyebrow" style="font-size:16px">${answered >= n ? "Toutes les tables ont répondu" : `${answered} table${answered > 1 ? "s" : ""} sur ${n}`} · voici les votes</p>
+        ${votesHTML(q)}
+        ${g.ask_couple ? `<div class="couple"><p class="eyebrow">La parole aux mariés</p><h3>${esc(COUPLE.her)}, ${esc(COUPLE.him)}, votre réponse ?</h3></div>` : `<h2 class="title" style="font-style:italic;color:var(--ink-soft)">${esc(suspenseLine())}</h2>`}
+      </section>`;
+      return;
+    }
     if (g.status === "reveal") {
       const r = Screen.reveal[q.id];
       if (!r && Screen.revealing !== q.id) {
@@ -592,7 +655,7 @@ const ScreenView = {
         <div><p class="eyebrow">${esc(courseTitle(q))}</p><h2 style="font-size:22px;color:var(--accent)">Question ${Live.idx() + 1} sur ${Live.questions.length}</h2></div>
         <h1 class="qtext">${esc(q.text)}</h1>
         <div class="options">${q.options.map((o, k) => `<div class="opt ${r ? (k === r.correct ? "correct" : "dim") : ""}"><b>${LETTERS[k]}.</b><span>${esc(o)}</span></div>`).join("")}</div>
-        ${r ? `<div class="verdict fade"><strong>La bonne réponse : ${esc(q.options[r.correct])}</strong>${r.anecdote ? `<p>${esc(r.anecdote)}</p>` : ""}</div>` : ""}
+        ${r ? `<div class="verdict fade"><strong>La bonne réponse : ${esc(q.options[r.correct])}</strong>${r.anecdote ? `<p>${esc(r.anecdote)}</p>` : ""}</div>${mediaHTML(r)}` : ""}
       </section>`;
       return;
     }
@@ -613,7 +676,7 @@ const ScreenView = {
 const Admin = {
   pin(){ try { return sessionStorage.getItem("cg-pin") || ""; } catch (e) { return ""; } },
   setPin(p){ try { if (p) sessionStorage.setItem("cg-pin", p); else sessionStorage.removeItem("cg-pin"); } catch (e) {} },
-  questions: [], loadingQ: false, editing: null, confirm: null, busy: false,
+  questions: [], loadingQ: false, editing: null, confirm: null, busy: false, autoClosed: null, uploading: false,
   async loadQuestions(){ this.questions = await rpc("admin_questions", { p_pin: this.pin() }); },
 };
 const LoginView = {
@@ -669,7 +732,10 @@ function AdminView(tab){
       ({ partie: renderPartie, questions: renderQuestions, tables: renderTables, reglages: renderReglages }[tab] || renderPartie)(el);
     },
     tick(){
-      if (Live.game && Live.game.status === "question" && !Live.game.paused) { updateTimers(Live.game); const el = document.getElementById("kpi-left"); if (el) el.textContent = remaining(Live.game) + " s"; }
+      if (Live.game && Live.game.status === "question" && !Live.game.paused) {
+        updateTimers(Live.game); const el = document.getElementById("kpi-left"); if (el) el.textContent = remaining(Live.game) + " s";
+        if (remaining(Live.game) === 0 && !Admin.busy && Admin.autoClosed !== Live.game.question_started_at) { Admin.autoClosed = Live.game.question_started_at; setTimeout(() => { if (Live.game && Live.game.status === "question" && !Live.game.paused) setGame("suspense", Live.game.current_question_id); }, 1500); }
+      }
     },
   };
 }
@@ -678,6 +744,12 @@ function ensureAdminQuestions(){
   Admin.loadingQ = true;
   Admin.loadQuestions().then(() => { Admin.loadingQ = false; if (currentView) currentView.render(); })
     .catch(e => { Admin.loadingQ = false; toast(humanError(e), true); if (/PIN/i.test(e.message || "")) { Admin.setPin(""); location.hash = "#/connexion"; } });
+}
+async function setAskCouple(ask){
+  if (Admin.busy) return; Admin.busy = true;
+  try { await rpc("admin_ask_couple", { p_pin: Admin.pin(), p_ask: ask }); await Live.loadGame(); }
+  catch (e) { toast(humanError(e), true); }
+  Admin.busy = false;
 }
 async function setPause(paused){
   if (Admin.busy) return; Admin.busy = true;
@@ -704,7 +776,8 @@ function renderPartie(el){
   let main = "", secondary = "";
   if (!qs.length) main = `<p class="notice err">Aucune question. Ajoutez-en dans l'onglet Questions.</p>`;
   else if (g.status === "lobby") main = `<button class="btn btn-primary" data-act="start">Lancer la question 1</button>`;
-  else if (g.status === "question") { main = `<button class="btn btn-primary" data-act="reveal">Clore et révéler la réponse</button>`; secondary = `<button class="btn btn-ghost" data-act="restart">Relancer le chrono</button>`; }
+  else if (g.status === "question") { main = `<button class="btn btn-primary" data-act="close">Clore les réponses</button>`; secondary = `<button class="btn btn-ghost" data-act="restart">Relancer le chrono</button>`; }
+  else if (g.status === "suspense") { main = `<button class="btn btn-primary" data-act="reveal">Révéler la réponse</button>`; secondary = g.ask_couple ? `<button class="btn btn-ghost" data-act="couple-off">Reprendre la main</button>` : `<button class="btn btn-ghost" data-act="couple">Demander aux mariés</button>`; }
   else if (g.status === "reveal") {
     main = courseEnd ? `<button class="btn btn-primary" data-act="board">Afficher le classement</button>` : `<button class="btn btn-primary" data-act="next">Question suivante (${i + 2})</button>`;
     secondary = courseEnd && !last ? `<button class="btn btn-ghost" data-act="next">Passer directement à la question ${i + 2}</button>` : "";
@@ -731,6 +804,9 @@ function renderPartie(el){
       <div><p class="eyebrow">${esc(courseTitle(q))} · question ${i + 1} sur ${qs.length}</p><h2 style="font-size:24px;margin-top:6px">${esc(q.text)}</h2></div>
       <div class="options">${q.options.map((o, k) => `<div class="opt ${full && k === full.correct ? "correct" : ""}"><b>${LETTERS[k]}.</b><span>${esc(o)}</span>${full && k === full.correct ? `<span style="margin-left:auto;font-size:12px;color:var(--sage);font-weight:600">BONNE RÉPONSE</span>` : ""}</div>`).join("")}</div>
       ${full && full.anecdote ? `<p class="notice" style="text-align:left">À lire : ${esc(full.anecdote)}</p>` : ""}
+      ${(g.status === "suspense" || g.status === "reveal") ? votesHTML(q) : ""}
+      ${g.status === "suspense" && g.ask_couple ? `<p class="notice" style="color:var(--accent)">Les mariés ont la parole sur le grand écran.</p>` : ""}
+      ${full && full.media_url ? `<p class="notice" style="text-align:left">Média à la révélation : ${full.media_type === "image" ? "photo" : "vidéo"}${full.media_type === "video" ? " (lancer la lecture sur le grand écran si elle ne démarre pas seule)" : ""}</p>` : ""}
     ` : g.status === "lobby" ? `<div><h2 style="font-size:24px">Les tables s'inscrivent</h2><p style="color:var(--ink-soft);margin-top:6px">Projetez le grand écran pour afficher le QR code. Première question : « ${esc(qs[0] ? qs[0].text : "")} ».</p></div>`
       : `<div><h2 style="font-size:24px">Partie terminée</h2><p style="color:var(--ink-soft);margin-top:6px">Le podium est affiché sur le grand écran.</p></div>`}
     <div class="actions">${main}${secondary}</div>
@@ -749,7 +825,9 @@ function renderPartie(el){
     const act = b.dataset.act; b.disabled = true;
     if (act === "start") await setGame("question", qs[0].id);
     else if (act === "restart") await setGame("question", q.id);
+    else if (act === "close") await setGame("suspense", q.id);
     else if (act === "reveal") await setGame("reveal", q.id);
+    else if (act === "couple" || act === "couple-off") await setAskCouple(act === "couple");
     else if (act === "board") await setGame("board", q.id);
     else if (act === "next") { if (next) await setGame("question", next.id); }
     else if (act === "finish") await setGame("finished", q.id);
@@ -775,7 +853,7 @@ function renderQuestions(el){
       <div class="qlist">${list.length ? list.map(q => Admin.editing && Admin.editing.id === q.id ? editorHTML(Admin.editing) : `
         <div class="qrow ${q.id === cur ? "current" : ""}" data-id="${q.id}">
           <span class="n">${qs.indexOf(q) + 1}</span>
-          <span class="t"><b>${esc(q.text)}</b><span>${esc(q.options[q.correct])}</span>${q.anecdote ? `<span class="anec">${esc(q.anecdote)}</span>` : ""}</span>
+          <span class="t"><b>${esc(q.text)}${q.media_url ? ` <span title="Média joint" style="color:var(--gold)">${q.media_type === "image" ? "📷" : "🎬"}</span>` : ""}</b><span>${esc(q.options[q.correct])}</span>${q.anecdote ? `<span class="anec">${esc(q.anecdote)}</span>` : ""}</span>
           <span class="ops">
             <button class="icon" data-op="up" title="Monter" ${qs.indexOf(q) === 0 ? "disabled" : ""}>↑</button>
             <button class="icon" data-op="down" title="Descendre" ${qs.indexOf(q) === qs.length - 1 ? "disabled" : ""}>↓</button>
@@ -802,10 +880,11 @@ function renderQuestions(el){
         await rpc("admin_reorder_questions", { p_pin: Admin.pin(), p_ids: ids });
         // le service suit la nouvelle place : on aligne sur le voisin échangé
         const moved = qs.find(x => x.id === id), neighbour = qs.find(x => x.id === ids[k]);
-        if (moved && neighbour && moved.course !== neighbour.course) await rpc("admin_save_question", { p_pin: Admin.pin(), p_id: moved.id, p_position: j + 1, p_course: neighbour.course, p_text: moved.text, p_options: moved.options, p_correct: moved.correct, p_anecdote: moved.anecdote });
+        if (moved && neighbour && moved.course !== neighbour.course) await rpc("admin_save_question", { p_pin: Admin.pin(), p_id: moved.id, p_position: j + 1, p_course: neighbour.course, p_text: moved.text, p_options: moved.options, p_correct: moved.correct, p_anecdote: moved.anecdote, p_media_url: moved.media_url, p_media_type: moved.media_type });
         await reloadQuestions();
       }
       else if (op === "cancel") { Admin.editing = null; currentView.render(); }
+      else if (op === "media-clear") { Admin.editing.media_url = null; Admin.editing.media_type = null; currentView.render(); }
       else if (op === "save") await saveEditor(el);
     } catch (err) { toast(humanError(err), true); }
   });
@@ -817,6 +896,15 @@ function editorHTML(q){
       <label>Anecdote lue après la réponse<input id="e-anecdote" maxlength="500" value="${esc(q.anecdote)}" placeholder="Facultatif"></label>
     </div>
     <label>Question<textarea id="e-text" maxlength="300" required>${esc(q.text)}</textarea></label>
+    <div class="mediabox">
+      <p class="eyebrow">Photo ou vidéo montrée avec la réponse (facultatif)</p>
+      ${q.media_url ? `<div class="preview">${q.media_type === "image" ? `<img src="${esc(q.media_url)}" alt="">` : q.media_type === "video" ? `<video src="${esc(q.media_url)}" muted></video>` : "▶"}<span>${q.media_type === "youtube" ? "Vidéo YouTube" : q.media_type === "video" ? "Vidéo" : "Photo"} prête</span><button class="btn btn-ghost btn-sm" type="button" data-op="media-clear">Retirer</button></div>` : `
+      <div class="two">
+        <label>Fichier (photo ou vidéo, 50 Mo max)<input type="file" id="e-file" accept="image/*,video/*"></label>
+        <label>ou lien YouTube<input id="e-yt" placeholder="https://youtu.be/…" inputmode="url"></label>
+      </div>`}
+      <p class="notice" id="e-media-status" hidden></p>
+    </div>
     <div class="opts">
       <p class="eyebrow">Réponses · cochez la bonne</p>
       ${q.options.map((o, k) => `<div class="optrow"><input type="radio" name="correct" value="${k}" ${k === q.correct ? "checked" : ""} aria-label="Bonne réponse ${LETTERS[k]}"><input id="e-opt-${k}" maxlength="80" required value="${esc(o)}" placeholder="Réponse ${LETTERS[k]}"></div>`).join("")}
@@ -834,10 +922,29 @@ async function saveEditor(el){
   if (!text || options.some(o => !o) || Number.isNaN(correct)) { toast("Question, quatre réponses et une bonne réponse cochée sont nécessaires.", true); return; }
   const id = f.dataset.id || null;
   const existing = Admin.questions.find(q => q.id === id);
+  // Média : fichier à déposer, lien YouTube, ou média déjà en place
+  let media_url = Admin.editing.media_url || null, media_type = Admin.editing.media_type || null;
+  const fileEl = f.querySelector("#e-file"), ytEl = f.querySelector("#e-yt");
+  const status = f.querySelector("#e-media-status");
+  if (fileEl && fileEl.files && fileEl.files[0]) {
+    const file = fileEl.files[0];
+    if (file.size > 50 * 1024 * 1024) { toast("Fichier trop lourd : 50 Mo maximum.", true); return; }
+    status.hidden = false; status.textContent = "Envoi du fichier…";
+    const ext = (file.name.split(".").pop() || "bin").toLowerCase().replace(/[^a-z0-9]/g, "");
+    const path = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const { error } = await sb.storage.from("media").upload(path, file, { contentType: file.type, upsert: false });
+    if (error) { status.textContent = "Envoi impossible : " + error.message; toast("Envoi du fichier impossible.", true); return; }
+    media_url = sb.storage.from("media").getPublicUrl(path).data.publicUrl;
+    media_type = file.type.startsWith("video/") ? "video" : "image";
+    status.textContent = "Fichier envoyé.";
+  } else if (ytEl && ytEl.value.trim()) {
+    if (!youtubeId(ytEl.value.trim())) { toast("Lien YouTube non reconnu.", true); return; }
+    media_url = ytEl.value.trim(); media_type = "youtube";
+  }
   // Nouvelle question : à la fin de son service
   const lastOfCourse = Admin.questions.filter(q => q.course === course).map(q => q.position).reduce((m, p) => Math.max(m, p), 0);
   const position = existing ? existing.position : (lastOfCourse || Admin.questions.length) + 1;
-  await rpc("admin_save_question", { p_pin: Admin.pin(), p_id: id, p_position: position, p_course: course, p_text: text, p_options: options, p_correct: correct, p_anecdote: anecdote });
+  await rpc("admin_save_question", { p_pin: Admin.pin(), p_id: id, p_position: position, p_course: course, p_text: text, p_options: options, p_correct: correct, p_anecdote: anecdote, p_media_url: media_url, p_media_type: media_type });
   Admin.editing = null;
   await reloadQuestions(true);
   toast(id ? "Question enregistrée" : "Question ajoutée");
