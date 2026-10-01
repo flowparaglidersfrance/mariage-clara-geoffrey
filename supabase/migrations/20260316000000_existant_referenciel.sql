@@ -1,0 +1,2 @@
+-- Migration déjà appliquée sur le projet Supabase « referenciel » avant le quiz.
+-- Fichier vide volontairement : il n'existe que pour aligner l'historique local.

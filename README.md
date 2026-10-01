@@ -15,3 +15,9 @@ Jeu de mariage : un téléphone par table, 15 questions sur les mariés en trois
 ```sql
 truncate public.answers, public.teams;
 ```
+
+## Hébergement
+
+- Site : https://flowparaglidersfrance.github.io/mariage-clare-geoffrey/ (GitHub Pages, branche `main`).
+- Base : projet Supabase « referenciel » (`fsdupjblgtojwhwuxzod`), tables `teams` et `answers`.
+- Les deux fichiers `*_existant_referenciel.sql` sont vides : ils alignent l'historique local sur les migrations déjà présentes dans ce projet.
