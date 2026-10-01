@@ -7,11 +7,12 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..700,50;1,9..144,300..700,50&family=Figtree:wght@400;500;600&display=swap">
 <style>
-/* Layout : une carte verticale façon menu de mariage ; trois services (Entrée, Plat, Dessert), un classement des tables entre chaque service. */
+/* Layout : trois espaces. Joueur et grand écran gardent la carte « menu de mariage » ; l'animateur a un bandeau sombre avec onglets, façon back-office. */
 :root{
   --ground:#F2EFE9; --paper:#FBF9F5; --ink:#2A1F2D; --ink-soft:#6E6270; --line:#D9D2CB;
   --accent:#A94F66; --accent-ink:#FBF9F5; --sage:#6F8C74; --sage-soft:#E3ECE4;
   --wrong:#B3443F; --wrong-soft:#F3DEDC; --gold:#B8933F; --mine:#F5E6EA;
+  --bar:#2A1F2D; --bar-ink:#F1EAE6; --bar-soft:#B2A6AE;
   --font-display:"Fraunces",Georgia,"Times New Roman",serif;
   --font-body:"Figtree",-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;
   --radius:18px;
@@ -22,64 +23,72 @@
     --ground:#1B151E; --paper:#271E2B; --ink:#F1EAE6; --ink-soft:#B2A6AE; --line:#473B4B;
     --accent:#D9798F; --accent-ink:#1B151E; --sage:#8FB295; --sage-soft:#2A3A2D;
     --wrong:#E07A74; --wrong-soft:#452A2A; --gold:#D4B264; --mine:#3A2630;
+    --bar:#120D14; --bar-ink:#F1EAE6; --bar-soft:#9A8E97;
   }
 }
 html,body{height:100%}
-body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.5;
-  padding-inline:16px;padding-block:calc(20px + env(safe-area-inset-top,0px)) calc(20px + env(safe-area-inset-bottom,0px));box-sizing:border-box;-webkit-font-smoothing:antialiased}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.5;box-sizing:border-box;-webkit-font-smoothing:antialiased}
 *,*::before,*::after{box-sizing:inherit}
-.app{max-width:480px;margin:0 auto;display:flex;flex-direction:column;gap:14px;min-height:100%}
-.app.wide{max-width:760px}
+.page{padding-inline:16px;padding-block:calc(20px + env(safe-area-inset-top,0px)) calc(20px + env(safe-area-inset-bottom,0px));min-height:100%}
+.app{max-width:480px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+.app.wide{max-width:900px}
 h1,h2,h3{font-family:var(--font-display);font-weight:400;margin:0;text-wrap:balance;line-height:1.1}
+p{margin:0}
 .eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);font-weight:600;margin:0}
 button{font:inherit;cursor:pointer;border:0;background:none;color:inherit}
-button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:26px 22px;position:relative;display:flex;flex-direction:column;gap:18px}
-.card::before{content:"";position:absolute;inset:7px;border:1px solid var(--gold);border-radius:calc(var(--radius) - 7px);opacity:.55;pointer-events:none}
+.card.menu-card::before{content:"";position:absolute;inset:7px;border:1px solid var(--gold);border-radius:calc(var(--radius) - 7px);opacity:.55;pointer-events:none}
 .card > *{position:relative}
 .monogram{font-family:var(--font-display);font-size:64px;font-style:italic;text-align:center;line-height:1;color:var(--accent);font-variation-settings:"SOFT" 50}
 .monogram small{font-size:26px;font-style:normal;color:var(--ink-soft);margin:0 6px;vertical-align:middle}
 .title{text-align:center;font-size:30px}
-.lede{color:var(--ink-soft);text-align:center;margin:0;max-width:36ch;align-self:center}
-.menu{display:grid;gap:8px;border-block:1px solid var(--line);padding-block:14px}
-.menu div{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
-.menu .course{font-family:var(--font-display);font-size:20px;font-style:italic}
-.menu .count{color:var(--ink-soft);font-size:13px;font-variant-numeric:tabular-nums}
+.lede{color:var(--ink-soft);text-align:center;max-width:36ch;align-self:center}
+.left{text-align:left;align-self:start;max-width:none}
 form{display:flex;flex-direction:column;gap:12px}
 label{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:var(--ink-soft)}
-input{font:inherit;font-size:17px;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--ground);color:var(--ink);width:100%}
+input,select,textarea{font:inherit;font-size:17px;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--ground);color:var(--ink);width:100%}
+textarea{min-height:70px;resize:vertical}
 .row{display:grid;grid-template-columns:1fr 110px;gap:10px}
-.btn{padding:14px 18px;border-radius:999px;font-weight:600;font-size:16px;text-align:center;transition:transform .12s}
+.btn{padding:14px 18px;border-radius:999px;font-weight:600;font-size:16px;text-align:center;transition:transform .12s;display:inline-flex;align-items:center;justify-content:center;gap:8px}
 .btn:active{transform:scale(.98)}
 .btn[disabled]{opacity:.5;cursor:default}
 .btn-primary{background:var(--accent);color:var(--accent-ink)}
 .btn-ghost{color:var(--accent);border:1px solid var(--line)}
-.tag{align-self:center;font-size:12px;color:var(--gold);border:1px dashed var(--gold);border-radius:999px;padding:4px 12px}
-.notice{font-size:13px;color:var(--ink-soft);background:var(--ground);border-radius:12px;padding:10px 14px;margin:0;text-align:center}
+.btn-danger{color:var(--wrong);border:1px solid var(--line)}
+.btn-sm{padding:8px 14px;font-size:14px}
+.notice{font-size:13px;color:var(--ink-soft);background:var(--ground);border-radius:12px;padding:10px 14px;text-align:center}
 .notice.err{color:var(--wrong)}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:4px 10px;border-radius:999px;border:1px solid var(--line);color:var(--ink-soft)}
+.pill i{width:7px;height:7px;border-radius:50%;background:var(--line);display:inline-block}
+.pill.lobby i{background:var(--gold)} .pill.question i{background:var(--accent)} .pill.reveal i{background:var(--sage)} .pill.board i{background:var(--sage)} .pill.finished i{background:var(--ink-soft)}
+.live{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-soft)}
+.live i{width:7px;height:7px;border-radius:50%;background:var(--sage);display:inline-block}
+.live.off i{background:var(--wrong)}
 .topbar{display:flex;justify-content:space-between;align-items:center;gap:12px}
-.progress{display:flex;gap:4px;flex:1}
-.progress i{flex:1;height:3px;border-radius:2px;background:var(--line)}
-.progress i.done{background:var(--accent)} .progress i.now{background:var(--gold)}
-.timer{width:44px;height:44px;position:relative;flex:none}
-.timer svg{width:44px;height:44px;transform:rotate(-90deg)}
+.timer{width:48px;height:48px;position:relative;flex:none}
+.timer svg{width:48px;height:48px;transform:rotate(-90deg)}
 .timer circle{fill:none;stroke-width:3} .timer .track{stroke:var(--line)}
 .timer .arc{stroke:var(--accent);stroke-linecap:round;transition:stroke-dashoffset 1s linear}
-.timer span{position:absolute;inset:0;display:grid;place-items:center;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
+.timer span{position:absolute;inset:0;display:grid;place-items:center;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
 .timer.hurry .arc{stroke:var(--wrong)}
+.timer.big{width:96px;height:96px}.timer.big svg{width:96px;height:96px}.timer.big span{font-size:30px}
 .qtext{font-size:24px}
 .options{display:grid;gap:10px}
 .opt{display:flex;align-items:center;gap:12px;text-align:left;padding:13px 14px;border-radius:14px;border:1px solid var(--line);background:var(--ground);font-size:16px;line-height:1.3;transition:border-color .12s,background .12s}
 .opt b{font-family:var(--font-display);font-style:italic;font-weight:400;color:var(--ink-soft);width:18px;flex:none;font-size:18px}
-.opt:not([disabled]):hover{border-color:var(--accent)}
+button.opt:not([disabled]):hover{border-color:var(--accent)}
+.opt.chosen{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
 .opt.correct{background:var(--sage-soft);border-color:var(--sage)} .opt.wrong{background:var(--wrong-soft);border-color:var(--wrong)} .opt.dim{opacity:.55}
 .verdict{display:flex;flex-direction:column;gap:6px;padding:14px 16px;border-radius:14px;background:var(--ground);border-left:3px solid var(--sage)}
 .verdict.bad{border-left-color:var(--wrong)}
 .verdict strong{font-family:var(--font-display);font-size:19px;font-weight:400}
-.verdict p{margin:0;color:var(--ink-soft);font-size:15px}
+.verdict p{color:var(--ink-soft);font-size:15px}
 .points{font-variant-numeric:tabular-nums;font-weight:600;color:var(--accent)}
-.interlude{text-align:center;gap:10px;padding-block:40px}
-.interlude .course{font-size:38px;font-style:italic}
+.wait{text-align:center;gap:12px;padding-block:36px}
+.wait .course{font-size:34px;font-style:italic}
+.pulse{width:10px;height:10px;border-radius:50%;background:var(--accent);margin:0 auto;animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:.6}50%{transform:scale(1.6);opacity:1}}
 /* Classement */
 .board{display:grid;gap:6px}
 .board .r{display:grid;grid-template-columns:34px 1fr auto;gap:12px;align-items:center;padding:10px 12px;border-radius:12px;border:1px solid transparent}
@@ -91,77 +100,97 @@ input{font:inherit;font-size:17px;padding:12px 14px;border-radius:12px;border:1p
 .board .team b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .board .team span{font-size:12px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
 .board .pts{font-family:var(--font-display);font-size:24px;font-variant-numeric:tabular-nums}
-.board .empty{color:var(--ink-soft);text-align:center;padding:20px;font-style:italic;font-family:var(--font-display);font-size:18px}
-.live{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-soft)}
-.live i{width:7px;height:7px;border-radius:50%;background:var(--sage);display:inline-block}
-.live.off i{background:var(--line)}
+.empty{color:var(--ink-soft);text-align:center;padding:20px;font-style:italic;font-family:var(--font-display);font-size:18px}
 .placecard{border:1px solid var(--line);border-radius:14px;padding:22px 18px;text-align:center;display:grid;gap:8px;background:var(--ground)}
 .placecard .who{font-family:var(--font-display);font-size:28px;font-style:italic}
 .placecard .big{font-family:var(--font-display);font-size:56px;line-height:1;font-variant-numeric:tabular-nums;color:var(--accent)}
 .placecard .rank{font-size:14px;color:var(--ink-soft)}
-/* Projection */
-.wide .board .r{grid-template-columns:48px 1fr auto;padding:14px 18px;font-size:20px}
-.wide .board .pos{font-size:32px} .wide .board .pts{font-size:34px} .wide .board .team span{font-size:14px}
+/* Grand écran */
+.screen .qtext{font-size:clamp(28px,4.5vw,46px)}
+.screen .options{grid-template-columns:1fr 1fr;gap:14px}
+.screen .opt{font-size:clamp(18px,2.4vw,26px);padding:18px 20px}
+.screen .board .r{grid-template-columns:52px 1fr auto;padding:14px 18px;font-size:22px}
+.screen .board .pos{font-size:32px} .screen .board .pts{font-size:34px} .screen .board .team span{font-size:14px}
+.screen .verdict strong{font-size:clamp(22px,3vw,32px)} .screen .verdict p{font-size:clamp(16px,2vw,22px)}
+@media (max-width:620px){.screen .options{grid-template-columns:1fr}}
 .qr{display:grid;place-items:center;gap:8px;padding:14px;background:#fff;border-radius:14px;align-self:center}
 .url{font-size:12px;word-break:break-all;color:var(--ink-soft);text-align:center}
 .split{display:grid;grid-template-columns:1fr auto;gap:22px;align-items:start}
 @media (max-width:620px){.split{grid-template-columns:1fr}.qr{justify-self:center}}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{padding:6px 12px;border-radius:999px;border:1px solid var(--line);font-size:15px;background:var(--ground)}
+.podium{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;align-items:end}
+.podium div{text-align:center;display:grid;gap:4px;padding:16px 10px;border-radius:14px;background:var(--ground);border:1px solid var(--line)}
+.podium div:first-child{order:2;border-color:var(--gold);padding-block:28px}
+.podium div:nth-child(2){order:1} .podium div:nth-child(3){order:3}
+.podium .pos{font-family:var(--font-display);font-style:italic;font-size:30px;color:var(--gold)}
+.podium b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.podium .pts{font-family:var(--font-display);font-size:28px;font-variant-numeric:tabular-nums}
+/* Espace animateur */
+.bar{background:var(--bar);color:var(--bar-ink);padding-inline:16px;padding-top:calc(10px + env(safe-area-inset-top,0px));position:sticky;top:0;z-index:5}
+.bar .in{max-width:900px;margin:0 auto;display:flex;flex-direction:column;gap:8px}
+.bar .head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.bar .brand{font-family:var(--font-display);font-style:italic;font-size:20px}
+.bar .brand small{font-family:var(--font-body);font-style:normal;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--bar-soft);margin-left:10px}
+.bar .links{display:flex;gap:6px;flex-wrap:wrap}
+.bar .links a,.bar .links button{color:var(--bar-soft);font-size:13px;text-decoration:none;padding:6px 10px;border-radius:999px}
+.bar .links a:hover,.bar .links button:hover{color:var(--bar-ink)}
+.tabs{display:flex;gap:4px;overflow-x:auto;padding-bottom:10px}
+.tabs a{color:var(--bar-soft);text-decoration:none;font-size:14px;font-weight:600;padding:8px 14px;border-radius:999px;white-space:nowrap}
+.tabs a.on{background:var(--bar-ink);color:var(--bar)}
+.admin{max-width:900px;margin:0 auto;padding-inline:16px;padding-block:18px calc(24px + env(safe-area-inset-bottom,0px));display:grid;gap:14px}
+.admin .card{padding:20px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.kpi{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:grid;gap:2px}
+.kpi b{font-family:var(--font-display);font-size:30px;font-weight:400;font-variant-numeric:tabular-nums;line-height:1.1}
+.kpi span{font-size:12px;color:var(--ink-soft)}
+.kpi.warn b{color:var(--accent)}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+.actions .btn{flex:1 1 200px}
+.qlist{display:grid;gap:8px}
+.qrow{display:grid;grid-template-columns:36px 1fr auto;gap:12px;align-items:center;padding:12px 14px;border-radius:12px;background:var(--ground);border:1px solid var(--line)}
+.qrow.current{border-color:var(--accent)}
+.qrow .n{font-family:var(--font-display);font-style:italic;font-size:20px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+.qrow .t{display:grid;gap:2px;min-width:0}
+.qrow .t b{font-weight:500}
+.qrow .t span{font-size:13px;color:var(--sage);font-weight:600}
+.qrow .t span.anec{color:var(--ink-soft);font-weight:400;font-style:italic}
+.qrow .ops{display:flex;gap:4px}
+.icon{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;border:1px solid var(--line);font-size:15px;color:var(--ink-soft)}
+.icon:hover{border-color:var(--accent);color:var(--accent)}
+.icon[disabled]{opacity:.3}
+.edit{display:grid;gap:12px;padding:16px;border-radius:14px;border:1px solid var(--accent);background:var(--paper)}
+.edit .opts{display:grid;gap:8px}
+.edit .optrow{display:grid;grid-template-columns:28px 1fr;gap:8px;align-items:center}
+.edit .optrow input[type=radio]{width:20px;height:20px;accent-color:var(--sage);padding:0}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:520px){.two{grid-template-columns:1fr}}
+.inline-confirm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:14px;color:var(--ink-soft)}
+.toast{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--bar);color:var(--bar-ink);padding:12px 18px;border-radius:999px;font-size:14px;z-index:20;max-width:90vw;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.25)}
+.toast.err{background:var(--wrong);color:#fff}
+.pinbox{display:flex;gap:10px;justify-content:center}
+.pinbox input{font-size:28px;letter-spacing:.5em;text-align:center;font-variant-numeric:tabular-nums;max-width:260px}
 footer{text-align:center;font-size:12px;color:var(--ink-soft);display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
-footer button{text-decoration:underline;text-underline-offset:3px;font-size:12px}
+footer a,footer button{color:inherit;text-decoration:underline;text-underline-offset:3px;font-size:12px}
 .fade{animation:fade .35s ease}
 @keyframes fade{from{opacity:.4;transform:translateY(6px)}to{opacity:1;transform:none}}
-@media (prefers-reduced-motion: reduce){.fade{animation:none}.timer .arc{transition:none}}
+@media (prefers-reduced-motion: reduce){.fade{animation:none}.timer .arc{transition:none}.pulse{animation:none}}
 </style>
 </head>
 <body>
-<div class="app" id="app"></div>
+<div id="root"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
 /* ============================================================
    CONFIGURATION
-   SUPABASE : URL du projet et clé publique (anon / publishable).
-   Tant que l'URL est vide, le jeu tourne en mode démo local :
-   une seule table, pas de classement partagé.
    ============================================================ */
 const SUPABASE = { url: "https://hjwnztxsalikcfzsrjds.supabase.co", key: "sb_publishable_i4an1uO0V54b8cLFOzk4zA_be39buWb" };
-
-const DEMO = true;                 // affiche « trame à personnaliser » sur l'accueil
 const COUPLE = { her: "Clare", him: "Geoffrey" };
-const SECONDS = 45;                // temps de réponse par question (débat compris)
-const BASE_POINTS = 100;           // bonne réponse
-const SPEED_POINTS = 50;           // bonus maximal de rapidité
-const PER_COURSE = 5;              // classement affiché toutes les 5 questions
-
-/* ---- Questions : `correct` = index (0 à 3) de la bonne réponse ---- */
-const COURSES = [
-  { name: "Entrée", subtitle: "Les débuts", questions: [
-    { q: "Où Clare et Geoffrey se sont-ils rencontrés ?", options: ["Dans un bar", "Au travail", "Sur une application", "Par des amis communs"], correct: 3, anecdote: "À compléter : la scène de la rencontre en une phrase." },
-    { q: "En quelle année ont-ils échangé leur premier baiser ?", options: ["2015", "2017", "2019", "2021"], correct: 1, anecdote: "À compléter : le lieu ou la circonstance." },
-    { q: "Qui a fait le premier pas ?", options: ["Clare", "Geoffrey", "Les deux en même temps", "Personne ne s'en souvient"], correct: 0, anecdote: "À compléter : la version de Clare et celle de Geoffrey ne concordent pas forcément…" },
-    { q: "Quelle a été leur première destination de vacances en amoureux ?", options: ["Lisbonne", "La Corse", "Rome", "Les Alpes"], correct: 2, anecdote: "À compléter : une anecdote de ce premier voyage." },
-    { q: "Quel surnom Geoffrey donne-t-il à Clare ?", options: ["Ma puce", "Chaton", "Boss", "Clarinette"], correct: 3, anecdote: "À compléter : l'origine du surnom." },
-  ]},
-  { name: "Plat", subtitle: "La vie à deux", questions: [
-    { q: "Qui cuisine le plus souvent à la maison ?", options: ["Clare", "Geoffrey", "Le livreur", "Belle-maman"], correct: 1, anecdote: "À compléter : le plat signature du chef." },
-    { q: "Qui est systématiquement en retard ?", options: ["Clare", "Geoffrey", "Les deux", "Aucun, ils sont parfaits"], correct: 0, anecdote: "À compléter : le record de retard à battre." },
-    { q: "Quel film ont-ils vu le plus de fois ensemble ?", options: ["Love Actually", "Le Seigneur des anneaux", "Intouchables", "Dirty Dancing"], correct: 0, anecdote: "À compléter : combien de fois, et qui s'endort avant la fin." },
-    { q: "Qui tient le volant sur les longs trajets ?", options: ["Clare", "Geoffrey", "Ils alternent", "Ils prennent le train"], correct: 1, anecdote: "À compléter : qui est le pire copilote." },
-    { q: "Combien de temps ont-ils vécu ensemble avant les fiançailles ?", options: ["Moins d'un an", "Deux ans", "Trois ans", "Plus de cinq ans"], correct: 2, anecdote: "À compléter : le premier appartement, le premier meuble monté ensemble…" },
-  ]},
-  { name: "Dessert", subtitle: "Le grand jour", questions: [
-    { q: "Où Geoffrey a-t-il fait sa demande ?", options: ["Sur une plage", "Au sommet d'une montagne", "Dans leur cuisine", "Au restaurant"], correct: 1, anecdote: "À compléter : la bague était-elle cachée depuis longtemps ?" },
-    { q: "Qui a pleuré en premier le jour de la demande ?", options: ["Clare", "Geoffrey", "La mère de Clare", "Le chien"], correct: 1, anecdote: "À compléter : combien de mouchoirs." },
-    { q: "Combien d'invités sont présents ce soir ?", options: ["Environ 60", "Environ 85", "Environ 100", "Environ 120"], correct: 1, anecdote: "À compléter : le nombre exact." },
-    { q: "Sur quelle chanson vont-ils ouvrir le bal ?", options: ["Perfect, Ed Sheeran", "La Vie en rose", "Can't Help Falling in Love", "Une surprise"], correct: 3, anecdote: "À compléter : vous le saurez dans quelques minutes." },
-    { q: "Quel est leur grand projet pour l'année qui vient ?", options: ["Un voyage au bout du monde", "Un chien", "Une maison", "Un bébé"], correct: 0, anecdote: "À compléter : la destination ou le projet, si ce n'est pas secret." },
-  ]},
-];
-
-/* ============================================================ */
-const ALL = COURSES.flatMap((c, ci) => c.questions.map((q, qi) => ({ ...q, course: ci, inCourse: qi })));
-const MAX = ALL.length * (BASE_POINTS + SPEED_POINTS);
+const COURSES = ["Entrée", "Plat", "Dessert"];
+const COURSE_SUB = { "Entrée": "Les débuts", "Plat": "La vie à deux", "Dessert": "Le grand jour" };
+const SECONDS_CHOICES = [30, 45, 60, 90];
 const RANKS = [
   [0.85, "Table des témoins", "Vous connaissez ce couple mieux qu'eux-mêmes."],
   [0.65, "Premier cercle", "On vous invite aux anniversaires sans hésiter."],
@@ -169,274 +198,690 @@ const RANKS = [
   [0.25, "Pièces rapportées", "Encore quelques repas de famille et ce sera bon."],
   [0,    "Table du fond", "Vous êtes venus pour la fête, et c'est très bien aussi."],
 ];
+const STATUS_LABEL = { lobby: "En attente", question: "Question ouverte", reveal: "Réponse révélée", board: "Classement", finished: "Partie terminée" };
+
+/* ============================================================
+   Outils
+   ============================================================ */
 const LETTERS = ["a", "b", "c", "d"];
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const root = document.getElementById("root");
+const sb = window.supabase.createClient(SUPABASE.url, SUPABASE.key);
+const ls = {
+  get(k, d){ try{ const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} },
+  del(k){ try{ localStorage.removeItem(k); }catch(e){} },
+};
+let toastTimer = null;
+function toast(msg, err){
+  document.querySelectorAll(".toast").forEach(t => t.remove());
+  const t = document.createElement("div"); t.className = "toast" + (err ? " err" : ""); t.textContent = msg; document.body.appendChild(t);
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.remove(), err ? 5000 : 2600);
+}
+async function rpc(name, args){
+  const { data, error } = await sb.rpc(name, args);
+  if (error) throw error;
+  return data;
+}
+function humanError(e){
+  const m = (e && e.message) || "";
+  if (/PIN/i.test(m)) return "Code PIN incorrect.";
+  if (/plus ouverte/.test(m)) return "La question vient d'être fermée.";
+  if (/Temps écoulé/.test(m)) return "Trop tard, le temps est écoulé.";
+  if (/duplicate|23505/.test(m)) return "Déjà répondu.";
+  if (/Failed to fetch|NetworkError|network/i.test(m)) return "Pas de réseau. Réessayez.";
+  return m || "Une erreur est survenue.";
+}
 
-/* ---------- Stockage : Supabase, ou démo locale ---------- */
-const sb = (SUPABASE.url && window.supabase) ? window.supabase.createClient(SUPABASE.url, SUPABASE.key) : null;
-const store = sb ? {
-  live: true,
-  async createTeam(name, table_no){
-    const { data, error } = await sb.from("teams").insert({ name, table_no: table_no || null }).select("id,name,table_no").single();
-    if (error) throw error; return data;
+/* ---- Horloge serveur (pour un chrono identique partout) ---- */
+let clockOffset = 0;
+async function syncClock(){
+  try { const t0 = Date.now(); const srv = await rpc("server_time"); const t1 = Date.now(); clockOffset = new Date(srv).getTime() - (t0 + t1) / 2; } catch (e) {}
+}
+const serverNow = () => Date.now() + clockOffset;
+function remaining(game){
+  if (!game || game.status !== "question" || !game.question_started_at) return 0;
+  return Math.max(0, Math.ceil(game.seconds - (serverNow() - new Date(game.question_started_at).getTime()) / 1000));
+}
+
+/* ---- Données partagées : état de la partie, questions publiques, classement ---- */
+const Live = {
+  game: null, questions: [], board: [], counts: {}, connected: false,
+  listeners: new Set(), channel: null, pollTimer: null,
+  on(fn){ this.listeners.add(fn); return () => this.listeners.delete(fn); },
+  emit(){ for (const fn of this.listeners) { try { fn(); } catch (e) { console.error(e); } } },
+  async loadGame(){
+    const { data } = await sb.from("game").select("*").eq("id", 1).single();
+    if (data) { const changed = JSON.stringify(data) !== JSON.stringify(this.game); this.game = data; if (changed) this.emit(); }
   },
-  async myAnswers(team_id){
-    const { data, error } = await sb.from("answers").select("question_idx,choice,correct,points").eq("team_id", team_id).order("question_idx");
-    if (error) throw error; return data;
+  async loadQuestions(){ const { data } = await sb.from("questions_public").select("*").order("position"); if (data) { this.questions = data; this.emit(); } },
+  async loadBoard(){
+    const [{ data: b }, { data: c }] = await Promise.all([sb.from("leaderboard").select("*"), sb.from("answer_counts").select("*")]);
+    const prev = JSON.stringify([this.board, this.counts]);
+    if (b) this.board = b.sort((x, y) => y.score - x.score || y.answered - x.answered || x.name.localeCompare(y.name));
+    if (c) this.counts = Object.fromEntries(c.map(r => [r.question_id, r.answered]));
+    if (JSON.stringify([this.board, this.counts]) !== prev) this.emit();
   },
-  async addAnswer(row){
-    const { error } = await sb.from("answers").insert(row);
-    if (error && error.code !== "23505") throw error;   // 23505 : déjà répondu (double appui)
+  async start(){
+    await Promise.all([this.loadGame(), this.loadQuestions(), this.loadBoard(), syncClock()]);
+    this.channel = sb.channel("live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "game" }, p => { if (p.new && p.new.id) { this.game = p.new; this.emit(); this.loadBoard(); } })
+      .on("postgres_changes", { event: "*", schema: "public", table: "teams" }, () => this.loadBoard())
+      .subscribe(status => { this.connected = status === "SUBSCRIBED"; this.emit(); });
+    // Filet de sécurité si le wifi de la salle coupe le temps réel
+    this.pollTimer = setInterval(() => { this.loadGame(); this.loadBoard(); }, 4000);
   },
-  async leaderboard(){
-    const { data, error } = await sb.from("teams").select("id,name,table_no,answers(points)");
-    if (error) throw error;
-    return data.map(t => ({ id: t.id, name: t.name, table_no: t.table_no, score: (t.answers || []).reduce((s, a) => s + a.points, 0), done: (t.answers || []).length }));
-  },
-  subscribe(cb){
-    const ch = sb.channel("quiz-live")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "answers" }, cb)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "teams" }, cb)
-      .subscribe();
-    return () => sb.removeChannel(ch);
-  },
-} : {
-  live: false,
-  _get(){ try{ return JSON.parse(localStorage.getItem("cg-demo") || '{"teams":[],"answers":[]}'); }catch(e){ return { teams: [], answers: [] }; } },
-  _set(d){ try{ localStorage.setItem("cg-demo", JSON.stringify(d)); }catch(e){} },
-  async createTeam(name, table_no){ const d = this._get(); const t = { id: "local-" + Date.now().toString(36), name, table_no: table_no || null }; d.teams.push(t); this._set(d); return t; },
-  async myAnswers(team_id){ return this._get().answers.filter(a => a.team_id === team_id).sort((a, b) => a.question_idx - b.question_idx); },
-  async addAnswer(row){ const d = this._get(); if (!d.answers.some(a => a.team_id === row.team_id && a.question_idx === row.question_idx)) { d.answers.push(row); this._set(d); } },
-  async leaderboard(){ const d = this._get(); return d.teams.map(t => { const as = d.answers.filter(a => a.team_id === t.id); return { ...t, score: as.reduce((s, a) => s + a.points, 0), done: as.length }; }); },
-  subscribe(){ return () => {}; },
+  current(){ return this.game && this.game.current_question_id ? this.questions.find(q => q.id === this.game.current_question_id) : null; },
+  idx(){ const q = this.current(); return q ? this.questions.indexOf(q) : -1; },
+  isCourseEnd(q){ const i = this.questions.indexOf(q); return i === this.questions.length - 1 || (i >= 0 && this.questions[i + 1].course !== q.course); },
 };
 
-/* ---------- État ---------- */
-const app = document.getElementById("app");
-let state = { screen: "home", team: null, i: 0, score: 0, left: SECONDS, error: "" };
-let tick = null, unsub = null, poll = null;
-
-function saveTeam(t){ try{ localStorage.setItem("cg-team", JSON.stringify(t)); }catch(e){} }
-function loadTeam(){ try{ return JSON.parse(localStorage.getItem("cg-team") || "null"); }catch(e){ return null; } }
-function forgetTeam(){ try{ localStorage.removeItem("cg-team"); }catch(e){} }
-
-function screenFor(i){ return i >= ALL.length ? "end" : (i % PER_COURSE === 0 ? (i === 0 ? "interlude" : "board") : "question"); }
-
-function stopLive(){ if (unsub) { unsub(); unsub = null; } clearInterval(poll); poll = null; }
-
-function render(){
-  clearInterval(tick); tick = null; stopLive();
-  app.classList.remove("wide");
-  if (location.hash === "#classement") return renderProjection();
-  ({ home: renderHome, interlude: renderInterlude, question: renderQuestion, board: renderBoard, end: renderEnd }[state.screen] || renderHome)();
+/* ============================================================
+   Routeur (ancre : #/jouer, #/connexion, #/animateur/..., #/ecran)
+   ============================================================ */
+function route(){ const h = location.hash.replace(/^#\/?/, ""); return h.split("/").filter(Boolean); }
+let currentView = null, viewTick = null, unsubLive = null;
+function mount(view){
+  clearInterval(viewTick); viewTick = null;
+  if (unsubLive) { unsubLive(); unsubLive = null; }
+  currentView = view;
+  document.body.className = view.bodyClass || "";
+  view.render();
+  unsubLive = Live.on(() => { if (view.tab === "questions" && Admin.editing) return; view.render(); });
+  if (view.tick) viewTick = setInterval(() => view.tick(), 1000);
   window.scrollTo(0, 0);
 }
-
-/* ---------- Accueil ---------- */
-function renderHome(){
-  app.innerHTML = `
-  <section class="card fade">
-    <div class="monogram">C<small>&amp;</small>G</div>
-    <p class="eyebrow" style="text-align:center">Le quiz des tables</p>
-    <h1 class="title">Quelle table connaît le mieux ${esc(COUPLE.her)} et ${esc(COUPLE.him)} ?</h1>
-    <p class="lede">Un téléphone par table. ${ALL.length} questions en trois services, ${SECONDS} secondes pour se mettre d'accord. Classement des tables après chaque service.</p>
-    ${DEMO ? `<span class="tag">Trame à personnaliser</span>` : ""}
-    ${store.live ? "" : `<p class="notice">Mode démo : le classement partagé n'est pas encore branché.</p>`}
-    <div class="menu">
-      ${COURSES.map(c => `<div><span class="course">${esc(c.name)} <span style="font-style:normal;font-size:15px;color:var(--ink-soft)">· ${esc(c.subtitle)}</span></span><span class="count">${c.questions.length} questions</span></div>`).join("")}
-    </div>
-    <form id="start">
-      <div class="row">
-        <label>Nom de la table<input id="name" name="name" required maxlength="40" placeholder="Les Cousins du Nord" autocomplete="off"></label>
-        <label>Numéro<input id="table" name="table" maxlength="12" placeholder="7" inputmode="numeric"></label>
-      </div>
-      ${state.error ? `<p class="notice err">${esc(state.error)}</p>` : ""}
-      <button class="btn btn-primary" type="submit" id="submit">Passer à table</button>
-    </form>
-  </section>
-  <footer><button type="button" id="to-proj">Classement sur grand écran</button></footer>`;
-  document.getElementById("start").addEventListener("submit", async e => {
-    e.preventDefault();
-    const name = document.getElementById("name").value.trim();
-    const table = document.getElementById("table").value.trim();
-    if (!name) { document.getElementById("name").focus(); return; }
-    const btn = document.getElementById("submit"); btn.disabled = true; btn.textContent = "Un instant…";
-    try {
-      const team = await store.createTeam(name, table);
-      saveTeam(team);
-      state = { ...state, team, i: 0, score: 0, left: SECONDS, error: "", screen: "interlude" };
-      render();
-    } catch (err) {
-      state.error = "Impossible d'inscrire la table. Vérifiez le réseau et réessayez."; console.error(err); render();
-    }
-  });
-  document.getElementById("to-proj").addEventListener("click", () => { location.hash = "classement"; });
+function navigate(){
+  const [a, b] = route();
+  if (a === "connexion") return mount(LoginView);
+  if (a === "animateur") { if (!Admin.pin()) { location.replace("#/connexion"); return; } return mount(AdminView(b || "partie")); }
+  if (a === "ecran") return mount(ScreenView);
+  return mount(PlayerView);
 }
+window.addEventListener("hashchange", navigate);
 
-/* ---------- Interlude ---------- */
-function renderInterlude(){
-  const c = COURSES[ALL[state.i].course];
-  app.innerHTML = `
-  <section class="card interlude fade">
-    <p class="eyebrow">${state.i === 0 ? "Premier service" : "Service suivant"} · ${esc(state.team.name)}</p>
-    <h2 class="course">${esc(c.name)}</h2>
-    <p class="lede">${esc(c.subtitle)} · ${c.questions.length} questions</p>
-    <button class="btn btn-primary" id="go" style="margin-top:14px">${state.i === 0 ? "C'est parti" : "On enchaîne"}</button>
-  </section>`;
-  document.getElementById("go").addEventListener("click", () => { state.screen = "question"; state.left = SECONDS; render(); });
+/* ============================================================
+   Composants partagés
+   ============================================================ */
+const CIRC = 2 * Math.PI * 19;
+function timerHTML(game, big){
+  const left = remaining(game), total = game.seconds || 45;
+  return `<div class="timer ${big ? "big" : ""} ${left <= 8 ? "hurry" : ""}" data-timer><svg viewBox="0 0 44 44"><circle class="track" cx="22" cy="22" r="19"/><circle class="arc" cx="22" cy="22" r="19" stroke-dasharray="${CIRC}" stroke-dashoffset="${CIRC * (1 - left / total)}"/></svg><span>${left}</span></div>`;
 }
-
-/* ---------- Question ---------- */
-function renderQuestion(){
-  const q = ALL[state.i];
-  const CIRC = 2 * Math.PI * 19;
-  app.innerHTML = `
-  <section class="card fade">
-    <div class="topbar">
-      <div class="progress">${ALL.map((_, k) => `<i class="${k < state.i ? "done" : k === state.i ? "now" : ""}"></i>`).join("")}</div>
-      <div class="timer" id="timer"><svg viewBox="0 0 44 44"><circle class="track" cx="22" cy="22" r="19"/><circle class="arc" id="arc" cx="22" cy="22" r="19" stroke-dasharray="${CIRC}" stroke-dashoffset="0"/></svg><span id="left">${state.left}</span></div>
-    </div>
-    <p class="eyebrow">${esc(COURSES[q.course].name)} · question ${q.inCourse + 1} sur ${COURSES[q.course].questions.length}</p>
-    <h2 class="qtext">${esc(q.q)}</h2>
-    <div class="options" id="options">
-      ${q.options.map((o, k) => `<button class="opt" type="button" data-k="${k}"><b>${LETTERS[k]}.</b><span>${esc(o)}</span></button>`).join("")}
-    </div>
-    <div id="verdict"></div>
-  </section>`;
-  const arc = document.getElementById("arc"), leftEl = document.getElementById("left"), timerEl = document.getElementById("timer");
-  const setArc = () => { arc.style.strokeDashoffset = CIRC * (1 - state.left / SECONDS); leftEl.textContent = state.left; timerEl.classList.toggle("hurry", state.left <= 8); };
-  setArc();
-  tick = setInterval(() => { state.left -= 1; setArc(); if (state.left <= 0) answer(-1); }, 1000);
-  document.getElementById("options").addEventListener("click", e => { const b = e.target.closest(".opt"); if (!b || b.disabled) return; answer(+b.dataset.k); });
-
-  async function answer(k){
-    clearInterval(tick); tick = null;
-    const ok = k === q.correct;
-    const pts = ok ? BASE_POINTS + Math.round(SPEED_POINTS * Math.max(0, state.left) / SECONDS) : 0;
-    document.querySelectorAll(".opt").forEach((b, idx) => { b.disabled = true; b.classList.add(idx === q.correct ? "correct" : idx === k ? "wrong" : "dim"); });
-    const last = state.i === ALL.length - 1;
-    const boardNext = !last && (state.i + 1) % PER_COURSE === 0;
-    document.getElementById("verdict").innerHTML = `
-      <div class="verdict ${ok ? "" : "bad"} fade">
-        <strong>${ok ? `Exact, <span class="points">+${pts}</span>` : k === -1 ? "Trop tard !" : "Raté."}</strong>
-        <p>${esc(q.anecdote)}</p>
-      </div>
-      <p class="notice" id="saving" style="margin-top:10px">Enregistrement…</p>
-      <button class="btn btn-primary" id="next" style="margin-top:12px;width:100%" disabled>${last ? "Classement final" : boardNext ? "Voir le classement" : "Question suivante"}</button>`;
-    try {
-      await store.addAnswer({ team_id: state.team.id, question_idx: state.i, choice: k, correct: ok, points: pts });
-      state.score += pts;
-      document.getElementById("saving").remove();
-    } catch (err) {
-      console.error(err);
-      state.score += pts;
-      const s = document.getElementById("saving"); s.textContent = "Réseau capricieux : le point est compté ici, il sera peut-être absent du classement."; s.classList.add("err");
-    }
-    const next = document.getElementById("next"); next.disabled = false;
-    next.addEventListener("click", () => { state.i += 1; state.left = SECONDS; state.screen = screenFor(state.i); render(); });
-    next.focus({ preventScroll: true });
-  }
+function updateTimers(game){
+  const left = remaining(game), total = game.seconds || 45;
+  document.querySelectorAll("[data-timer]").forEach(t => { t.classList.toggle("hurry", left <= 8); t.querySelector(".arc").style.strokeDashoffset = CIRC * (1 - left / total); t.querySelector("span").textContent = left; });
 }
-
-/* ---------- Classement (composant partagé) ---------- */
 function boardHTML(rows, mineId, limit){
   if (!rows.length) return `<div class="empty">Aucune table inscrite pour le moment.</div>`;
-  rows = [...rows].sort((a, b) => b.score - a.score || b.done - a.done || a.name.localeCompare(b.name));
   const shown = limit ? rows.slice(0, limit) : rows;
   const mine = rows.findIndex(r => r.id === mineId);
   let html = shown.map((r, k) => rowHTML(r, k, mineId)).join("");
-  if (mineId && mine >= shown.length) html += `<div class="empty" style="padding:6px">…</div>` + rowHTML(rows[mine], mine, mineId);
+  if (mineId && mine >= shown.length) html += `<div class="empty" style="padding:4px">…</div>` + rowHTML(rows[mine], mine, mineId);
   return html;
 }
 function rowHTML(r, k, mineId){
   return `<div class="r ${r.id === mineId ? "mine" : ""} ${k === 0 && r.score > 0 ? "top" : ""}">
     <span class="pos">${k + 1}</span>
-    <span class="team"><b>${esc(r.name)}</b><span>${r.table_no ? `table ${esc(r.table_no)} · ` : ""}${r.done}/${ALL.length} questions</span></span>
+    <span class="team"><b>${esc(r.name)}</b><span>${r.table_no ? `table ${esc(r.table_no)} · ` : ""}${r.answered} réponse${r.answered > 1 ? "s" : ""}</span></span>
     <span class="pts">${r.score}</span></div>`;
 }
-function liveBoard(el, mineId, limit, onRows){
-  let busy = false;
-  const refresh = async () => {
-    if (busy) return; busy = true;
-    try { const rows = await store.leaderboard(); el.innerHTML = boardHTML(rows, mineId, limit); if (onRows) onRows(rows); }
-    catch (err) { console.error(err); el.innerHTML = `<div class="empty">Classement indisponible pour l'instant.</div>`; }
-    busy = false;
-  };
-  refresh();
-  unsub = store.subscribe(() => refresh());
-  poll = setInterval(refresh, 10000);
-}
+function courseTitle(q){ return q ? `${q.course} · ${COURSE_SUB[q.course] || ""}` : ""; }
+function afterCourse(q){ return q ? ` après ${q.course === "Entrée" ? "l'" : "le "}${q.course.toLowerCase()}` : ""; }
+function qrInto(el, text){ try { if (window.QRCode && el) new QRCode(el, { text, width: 180, height: 180, colorDark: "#2A1F2D", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.M }); } catch (e) {} }
+const baseURL = () => location.origin + location.pathname;
+const playerURL = () => baseURL() + "#/jouer";
 
-function renderBoard(){
-  const prev = COURSES[ALL[state.i - 1].course];
-  app.innerHTML = `
-  <section class="card fade">
-    <div class="topbar"><p class="eyebrow">Classement après ${prev.name === "Entrée" ? "l'" : "le "}${esc(prev.name).toLowerCase()}</p><span class="live ${store.live ? "" : "off"}"><i></i>${store.live ? "en direct" : "démo"}</span></div>
-    <h2 class="title" style="text-align:left">Où en sont les tables ?</h2>
-    <div class="board" id="board"><div class="empty">Chargement…</div></div>
-    <p class="notice">Les tables n'avancent pas toutes au même rythme : le nombre de questions jouées est indiqué sous chaque nom.</p>
-    <button class="btn btn-primary" id="go">Service suivant</button>
-  </section>`;
-  liveBoard(document.getElementById("board"), state.team.id, 8);
-  document.getElementById("go").addEventListener("click", () => { state.screen = "interlude"; render(); });
-}
+/* ============================================================
+   ESPACE JOUEUR
+   ============================================================ */
+const Player = {
+  team(){ return ls.get("cg-team", null); },
+  answered(){ return ls.get("cg-answered", {}); },
+  markAnswered(qid, choice){ const a = this.answered(); a[qid] = choice; ls.set("cg-answered", a); },
+  reveal: {}, revealing: null,
+};
+const PlayerView = {
+  render(){
+    const g = Live.game, team = Player.team();
+    root.innerHTML = `<div class="page"><div class="app" id="app"></div></div>`;
+    const app = document.getElementById("app");
+    if (!g) { app.innerHTML = `<section class="card menu-card"><div class="empty">Connexion à la partie…</div></section>`; return; }
+    if (!team) return this.join(app, g);
+    const q = Live.current();
+    if (g.status === "finished") return this.finished(app, team);
+    if (g.status === "lobby" || !q) return this.lobby(app, team);
+    if (g.status === "question") return this.question(app, g, q, team);
+    if (g.status === "reveal") return this.reveal(app, q, team);
+    if (g.status === "board") return this.board(app, q, team);
+  },
+  tick(){
+    if (Live.game && Live.game.status === "question") {
+      updateTimers(Live.game);
+      if (remaining(Live.game) === 0 && !document.querySelector("[data-timeout]") && !document.querySelector("[data-answered]")) this.render();
+    }
+  },
 
-function renderEnd(){
-  const ratio = state.score / MAX;
-  const [, rank, line] = RANKS.find(r => ratio >= r[0]);
-  app.innerHTML = `
-  <section class="card fade">
-    <div class="placecard">
-      <p class="eyebrow">Votre table</p>
-      <div class="who">${esc(state.team.name)}${state.team.table_no ? ` <span style="font-size:15px;font-style:normal;color:var(--ink-soft)">· table ${esc(state.team.table_no)}</span>` : ""}</div>
-      <div class="big">${state.score}</div>
-      <div class="rank"><strong style="color:var(--ink)">${rank}</strong><br>${line}</div>
-    </div>
-    <div class="topbar"><p class="eyebrow">Classement final</p><span class="live ${store.live ? "" : "off"}"><i></i>${store.live ? "en direct" : "démo"}</span></div>
-    <div class="board" id="board"><div class="empty">Chargement…</div></div>
-    <p class="notice">Le classement continue de bouger tant que des tables jouent encore.</p>
-    <button class="btn btn-ghost" id="reset">Inscrire une autre table sur ce téléphone</button>
-  </section>`;
-  liveBoard(document.getElementById("board"), state.team.id, 0);
-  document.getElementById("reset").addEventListener("click", () => { forgetTeam(); state = { screen: "home", team: null, i: 0, score: 0, left: SECONDS, error: "" }; render(); });
-}
+  join(app, g){
+    const n = Live.board.length;
+    app.innerHTML = `
+    <section class="card menu-card fade">
+      <div class="monogram">C<small>&amp;</small>G</div>
+      <p class="eyebrow" style="text-align:center">Le quiz des tables</p>
+      <h1 class="title">Quelle table connaît le mieux ${esc(COUPLE.her)} et ${esc(COUPLE.him)} ?</h1>
+      <p class="lede">Un téléphone par table. L'animateur lance les questions, vous avez quelques dizaines de secondes pour vous mettre d'accord.</p>
+      ${g.status === "finished" ? `<p class="notice">La partie est terminée. Vous pouvez tout de même consulter le classement.</p>` : g.status !== "lobby" ? `<p class="notice">La partie a déjà commencé, vous pouvez la rejoindre en cours de route.</p>` : ""}
+      <form id="join">
+        <div class="row">
+          <label>Nom de la table<input id="name" required maxlength="40" placeholder="Les Cousins du Nord" autocomplete="off"></label>
+          <label>Numéro<input id="table" maxlength="12" placeholder="7" inputmode="numeric"></label>
+        </div>
+        <button class="btn btn-primary" type="submit" id="submit">Passer à table</button>
+      </form>
+      <p class="lede" style="font-size:13px">${n} table${n > 1 ? "s" : ""} déjà inscrite${n > 1 ? "s" : ""}</p>
+    </section>
+    <footer><a href="#/connexion">Espace animateur</a></footer>`;
+    document.getElementById("join").addEventListener("submit", async e => {
+      e.preventDefault();
+      const name = document.getElementById("name").value.trim(), table_no = document.getElementById("table").value.trim() || null;
+      if (!name) return;
+      const btn = document.getElementById("submit"); btn.disabled = true; btn.textContent = "Un instant…";
+      try {
+        const { data, error } = await sb.from("teams").insert({ name, table_no }).select("id,name,table_no").single();
+        if (error) throw error;
+        ls.set("cg-team", data); ls.set("cg-answered", {}); Player.reveal = {}; Live.loadBoard(); this.render();
+      } catch (err) { toast(humanError(err), true); btn.disabled = false; btn.textContent = "Passer à table"; }
+    });
+  },
 
-/* ---------- Projection grand écran ---------- */
-function renderProjection(){
-  app.classList.add("wide");
-  const url = location.origin + location.pathname;
-  app.innerHTML = `
-  <section class="card fade">
-    <div class="split">
-      <div style="display:grid;gap:10px">
-        <div class="monogram" style="text-align:left;font-size:54px">C<small>&amp;</small>G</div>
-        <h1 class="title" style="text-align:left">Le quiz des tables</h1>
-        <p class="lede" style="text-align:left;align-self:start">Scannez le code avec un téléphone par table, entrez le nom de votre table et jouez. Le classement se met à jour tout seul.</p>
-        <span class="live ${store.live ? "" : "off"}"><i></i>${store.live ? "en direct" : "mode démo"} · <span id="count">0</span> tables inscrites</span>
+  lobby(app, team){
+    const n = Live.board.length;
+    app.innerHTML = `
+    <section class="card menu-card wait fade">
+      <p class="eyebrow">${esc(team.name)}${team.table_no ? ` · table ${esc(team.table_no)}` : ""}</p>
+      <div class="monogram">C<small>&amp;</small>G</div>
+      <h2 class="course">À table !</h2>
+      <p class="lede">Vous êtes inscrits. L'animateur va lancer la première question, gardez ce téléphone à portée de main.</p>
+      <div class="pulse"></div>
+      <p class="lede" style="font-size:13px">${n} table${n > 1 ? "s" : ""} prête${n > 1 ? "s" : ""}</p>
+    </section>
+    <footer><button type="button" id="leave">Changer de table</button></footer>`;
+    document.getElementById("leave").addEventListener("click", () => { ls.del("cg-team"); this.render(); });
+  },
+
+  question(app, g, q, team){
+    const mine = Player.answered()[q.id];
+    const left = remaining(g);
+    const closed = mine !== undefined || left === 0;
+    app.innerHTML = `
+    <section class="card menu-card fade">
+      <div class="topbar">
+        <div><p class="eyebrow">${esc(courseTitle(q))}</p><p class="eyebrow" style="color:var(--accent)">Question ${Live.idx() + 1} sur ${Live.questions.length}</p></div>
+        ${timerHTML(g)}
       </div>
-      <div class="qr" id="qr"></div>
-    </div>
-    <div class="board" id="board"><div class="empty">Chargement…</div></div>
-    <p class="url">${esc(url)}</p>
-  </section>
-  <footer><button type="button" id="back">Retour au jeu</button></footer>`;
-  try { if (window.QRCode) new QRCode(document.getElementById("qr"), { text: url, width: 180, height: 180, colorDark: "#2A1F2D", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.M }); } catch (e) {}
-  liveBoard(document.getElementById("board"), null, 0, rows => { document.getElementById("count").textContent = rows.length; });
-  document.getElementById("back").addEventListener("click", () => { history.replaceState(null, "", location.pathname); render(); });
+      <h2 class="qtext">${esc(q.text)}</h2>
+      <div class="options" id="options">
+        ${q.options.map((o, k) => `<button class="opt ${mine === k ? "chosen" : ""} ${closed && mine !== k ? "dim" : ""}" type="button" data-k="${k}" ${closed ? "disabled" : ""}><b>${LETTERS[k]}.</b><span>${esc(o)}</span></button>`).join("")}
+      </div>
+      ${mine !== undefined ? `<p class="notice" data-answered>Réponse enregistrée. La bonne réponse arrive dès que l'animateur la révèle.</p>`
+        : left === 0 ? `<p class="notice err" data-timeout>Temps écoulé. Patience, la réponse arrive.</p>` : `<p class="notice">Une seule réponse par table, choisissez bien.</p>`}
+    </section>`;
+    document.getElementById("options").addEventListener("click", async e => {
+      const b = e.target.closest(".opt"); if (!b || b.disabled) return;
+      document.querySelectorAll(".opt").forEach(x => x.disabled = true); b.classList.add("chosen");
+      try { await rpc("submit_answer", { p_team_id: team.id, p_question_id: q.id, p_choice: +b.dataset.k }); Player.markAnswered(q.id, +b.dataset.k); this.render(); }
+      catch (err) {
+        if (/23505|duplicate/.test(err.message || "")) { Player.markAnswered(q.id, +b.dataset.k); this.render(); }
+        else { toast(humanError(err), true); this.render(); }
+      }
+    });
+  },
+
+  async loadReveal(q, team){
+    if (Player.reveal[q.id] || Player.revealing === q.id) return;
+    Player.revealing = q.id;
+    try { const r = await rpc("reveal_question", { p_question_id: q.id, p_team_id: team.id }); Player.reveal[q.id] = r[0] || null; }
+    catch (e) { console.error(e); }
+    Player.revealing = null; this.render();
+  },
+  reveal(app, q, team){
+    const r = Player.reveal[q.id];
+    if (!r) this.loadReveal(q, team);
+    const mine = r ? r.my_choice : Player.answered()[q.id];
+    app.innerHTML = `
+    <section class="card menu-card fade">
+      <div><p class="eyebrow">${esc(courseTitle(q))}</p><p class="eyebrow" style="color:var(--accent)">Question ${Live.idx() + 1} sur ${Live.questions.length}</p></div>
+      <h2 class="qtext">${esc(q.text)}</h2>
+      <div class="options">
+        ${q.options.map((o, k) => `<div class="opt ${r && k === r.correct ? "correct" : mine === k ? "wrong" : "dim"}"><b>${LETTERS[k]}.</b><span>${esc(o)}</span></div>`).join("")}
+      </div>
+      ${r ? `<div class="verdict ${r.my_correct ? "" : "bad"} fade">
+        <strong>${r.my_choice === null ? "Pas de réponse de votre table." : r.my_correct ? `Exact, <span class="points">+${r.my_points}</span>` : "Raté."}</strong>
+        ${r.anecdote ? `<p>${esc(r.anecdote)}</p>` : ""}
+      </div>` : `<p class="notice">Révélation…</p>`}
+      <p class="notice">L'animateur enchaîne dans un instant.</p>
+    </section>`;
+  },
+
+  board(app, q, team){
+    app.innerHTML = `
+    <section class="card menu-card fade">
+      <div class="topbar"><p class="eyebrow">Classement${afterCourse(q)}</p><span class="live ${Live.connected ? "" : "off"}"><i></i>en direct</span></div>
+      <h2 class="title" style="text-align:left">Où en sont les tables ?</h2>
+      <div class="board">${boardHTML(Live.board, team.id, 8)}</div>
+    </section>`;
+  },
+
+  finished(app, team){
+    const me = Live.board.find(r => r.id === team.id) || { score: 0 };
+    const max = Live.questions.length * 150 || 1;
+    const [, rank, line] = RANKS.find(r => me.score / max >= r[0]);
+    const pos = Live.board.findIndex(r => r.id === team.id) + 1;
+    app.innerHTML = `
+    <section class="card menu-card fade">
+      <div class="placecard">
+        <p class="eyebrow">Votre table${pos ? ` · ${pos}${pos === 1 ? "re" : "e"} place` : ""}</p>
+        <div class="who">${esc(team.name)}${team.table_no ? ` <span style="font-size:15px;font-style:normal;color:var(--ink-soft)">· table ${esc(team.table_no)}</span>` : ""}</div>
+        <div class="big">${me.score}</div>
+        <div class="rank"><strong style="color:var(--ink)">${rank}</strong><br>${line}</div>
+      </div>
+      <p class="eyebrow">Classement final</p>
+      <div class="board">${boardHTML(Live.board, team.id, 0)}</div>
+      <p class="lede">Merci d'avoir joué. Et maintenant, place à la fête.</p>
+    </section>
+    <footer><button type="button" id="leave">Inscrire une autre table</button></footer>`;
+    document.getElementById("leave").addEventListener("click", () => { ls.del("cg-team"); this.render(); });
+  },
+};
+
+/* ============================================================
+   GRAND ÉCRAN
+   ============================================================ */
+const Screen = { reveal: {}, revealing: null };
+const ScreenView = {
+  bodyClass: "screen",
+  render(){
+    const g = Live.game, q = Live.current();
+    root.innerHTML = `<div class="page"><div class="app wide" id="app"></div></div>`;
+    const app = document.getElementById("app");
+    if (!g) { app.innerHTML = `<section class="card menu-card"><div class="empty">Connexion…</div></section>`; return; }
+    const n = Live.board.length;
+    if (g.status === "finished") {
+      const top = Live.board.slice(0, 3), rest = Live.board.slice(3);
+      app.innerHTML = `
+      <section class="card menu-card fade">
+        <div class="monogram">C<small>&amp;</small>G</div>
+        <h1 class="title" style="font-size:40px">Le podium des tables</h1>
+        ${top.length ? `<div class="podium">${top.map((r, k) => `<div><span class="pos">${k + 1}</span><b>${esc(r.name)}</b><span class="pts">${r.score}</span></div>`).join("")}</div>` : `<div class="empty">Aucune table.</div>`}
+        ${rest.length ? `<div class="board">${rest.map((r, k) => rowHTML(r, k + 3, null)).join("")}</div>` : ""}
+        <p class="lede" style="font-size:20px">Merci à toutes les tables. Place à la fête !</p>
+      </section>`;
+      return;
+    }
+    if (g.status === "lobby" || !q) {
+      app.innerHTML = `
+      <section class="card menu-card fade">
+        <div class="split">
+          <div style="display:grid;gap:12px">
+            <div class="monogram" style="text-align:left;font-size:60px">C<small>&amp;</small>G</div>
+            <h1 class="title" style="text-align:left;font-size:40px">Le quiz des tables</h1>
+            <p class="lede left" style="font-size:20px">Un téléphone par table. Scannez le code, donnez un nom à votre table et attendez le top départ.</p>
+            <p class="eyebrow">${n} table${n > 1 ? "s" : ""} prête${n > 1 ? "s" : ""}</p>
+            <div class="chips">${Live.board.map(r => `<span class="chip">${esc(r.name)}${r.table_no ? ` <span style="color:var(--ink-soft)">· ${esc(r.table_no)}</span>` : ""}</span>`).join("") || `<span class="empty" style="padding:0">Personne pour l'instant…</span>`}</div>
+          </div>
+          <div class="qr" id="qr"></div>
+        </div>
+        <p class="url">${esc(playerURL())}</p>
+      </section>`;
+      qrInto(document.getElementById("qr"), playerURL());
+      return;
+    }
+    if (g.status === "question") {
+      const answered = Live.counts[q.id] || 0;
+      app.innerHTML = `
+      <section class="card menu-card fade">
+        <div class="topbar">
+          <div><p class="eyebrow">${esc(courseTitle(q))}</p><h2 style="font-size:22px;color:var(--accent)">Question ${Live.idx() + 1} sur ${Live.questions.length}</h2></div>
+          ${timerHTML(g, true)}
+        </div>
+        <h1 class="qtext">${esc(q.text)}</h1>
+        <div class="options">${q.options.map((o, k) => `<div class="opt"><b>${LETTERS[k]}.</b><span>${esc(o)}</span></div>`).join("")}</div>
+        <p class="eyebrow" style="font-size:16px">${answered} table${answered > 1 ? "s" : ""} sur ${n} ${answered > 1 ? "ont" : "a"} répondu</p>
+      </section>`;
+      return;
+    }
+    if (g.status === "reveal") {
+      const r = Screen.reveal[q.id];
+      if (!r && Screen.revealing !== q.id) {
+        Screen.revealing = q.id;
+        rpc("reveal_question", { p_question_id: q.id, p_team_id: null }).then(d => { Screen.reveal[q.id] = d[0] || null; Screen.revealing = null; this.render(); }).catch(() => { Screen.revealing = null; });
+      }
+      app.innerHTML = `
+      <section class="card menu-card fade">
+        <div><p class="eyebrow">${esc(courseTitle(q))}</p><h2 style="font-size:22px;color:var(--accent)">Question ${Live.idx() + 1} sur ${Live.questions.length}</h2></div>
+        <h1 class="qtext">${esc(q.text)}</h1>
+        <div class="options">${q.options.map((o, k) => `<div class="opt ${r ? (k === r.correct ? "correct" : "dim") : ""}"><b>${LETTERS[k]}.</b><span>${esc(o)}</span></div>`).join("")}</div>
+        ${r ? `<div class="verdict fade"><strong>La bonne réponse : ${esc(q.options[r.correct])}</strong>${r.anecdote ? `<p>${esc(r.anecdote)}</p>` : ""}</div>` : ""}
+      </section>`;
+      return;
+    }
+    if (g.status === "board") {
+      app.innerHTML = `
+      <section class="card menu-card fade">
+        <div class="topbar"><h1 class="title" style="text-align:left;font-size:36px">Classement${afterCourse(q)}</h1><span class="live ${Live.connected ? "" : "off"}"><i></i>en direct</span></div>
+        <div class="board">${boardHTML(Live.board, null, 10)}</div>
+      </section>`;
+    }
+  },
+  tick(){ if (Live.game && Live.game.status === "question") updateTimers(Live.game); },
+};
+
+/* ============================================================
+   CONNEXION ANIMATEUR
+   ============================================================ */
+const Admin = {
+  pin(){ try { return sessionStorage.getItem("cg-pin") || ""; } catch (e) { return ""; } },
+  setPin(p){ try { if (p) sessionStorage.setItem("cg-pin", p); else sessionStorage.removeItem("cg-pin"); } catch (e) {} },
+  questions: [], loadingQ: false, editing: null, confirm: null, busy: false,
+  async loadQuestions(){ this.questions = await rpc("admin_questions", { p_pin: this.pin() }); },
+};
+const LoginView = {
+  render(){
+    root.innerHTML = `<div class="page"><div class="app">
+      <section class="card menu-card fade">
+        <div class="monogram">C<small>&amp;</small>G</div>
+        <p class="eyebrow" style="text-align:center">Espace animateur</p>
+        <h1 class="title">Code d'accès</h1>
+        <p class="lede">Réservé à la personne qui anime le quiz. Les tables n'ont rien à faire ici.</p>
+        <form id="login">
+          <div class="pinbox"><input id="pin" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" maxlength="8" placeholder="····" aria-label="Code PIN"></div>
+          <button class="btn btn-primary" type="submit" id="go">Entrer</button>
+        </form>
+      </section>
+      <footer><a href="#/jouer">Retour au quiz</a></footer>
+    </div></div>`;
+    const pinEl = document.getElementById("pin"); pinEl.focus();
+    document.getElementById("login").addEventListener("submit", async e => {
+      e.preventDefault();
+      const pin = pinEl.value.trim(); if (!pin) return;
+      const btn = document.getElementById("go"); btn.disabled = true; btn.textContent = "Vérification…";
+      try {
+        const ok = await rpc("check_pin", { p_pin: pin });
+        if (ok) { Admin.setPin(pin); Admin.questions = []; location.hash = "#/animateur"; }
+        else { toast("Code incorrect.", true); btn.disabled = false; btn.textContent = "Entrer"; pinEl.value = ""; pinEl.focus(); }
+      } catch (err) { toast(humanError(err), true); btn.disabled = false; btn.textContent = "Entrer"; }
+    });
+  },
+};
+
+/* ============================================================
+   ESPACE ANIMATEUR
+   ============================================================ */
+const TABS = [["partie", "Partie"], ["questions", "Questions"], ["tables", "Tables"], ["reglages", "Réglages"]];
+function AdminView(tab){
+  return {
+    tab,
+    render(){
+      const g = Live.game;
+      root.innerHTML = `
+      <div class="bar"><div class="in">
+        <div class="head">
+          <div class="brand">C &amp; G <small>Espace animateur</small></div>
+          <div class="links"><a href="#/ecran" target="_blank" rel="noopener">Grand écran ↗</a><a href="#/jouer" target="_blank" rel="noopener">Vue joueur ↗</a><button type="button" id="logout">Quitter</button></div>
+        </div>
+        <nav class="tabs">${TABS.map(([k, l]) => `<a href="#/animateur/${k}" class="${k === tab ? "on" : ""}">${l}</a>`).join("")}</nav>
+      </div></div>
+      <div class="admin" id="admin"></div>`;
+      document.getElementById("logout").addEventListener("click", () => { Admin.setPin(""); location.hash = "#/jouer"; });
+      const el = document.getElementById("admin");
+      if (!g) { el.innerHTML = `<div class="empty">Connexion…</div>`; return; }
+      ({ partie: renderPartie, questions: renderQuestions, tables: renderTables, reglages: renderReglages }[tab] || renderPartie)(el);
+    },
+    tick(){
+      if (Live.game && Live.game.status === "question") { updateTimers(Live.game); const el = document.getElementById("kpi-left"); if (el) el.textContent = remaining(Live.game) + " s"; }
+    },
+  };
+}
+function ensureAdminQuestions(){
+  if (Admin.questions.length || Admin.loadingQ) return;
+  Admin.loadingQ = true;
+  Admin.loadQuestions().then(() => { Admin.loadingQ = false; if (currentView) currentView.render(); })
+    .catch(e => { Admin.loadingQ = false; toast(humanError(e), true); if (/PIN/i.test(e.message || "")) { Admin.setPin(""); location.hash = "#/connexion"; } });
+}
+async function setGame(status, qid, seconds){
+  if (Admin.busy) return; Admin.busy = true;
+  try { await rpc("admin_set_game", { p_pin: Admin.pin(), p_status: status, p_question_id: qid, p_seconds: seconds ?? null }); await Live.loadGame(); await Live.loadBoard(); }
+  catch (e) { toast(humanError(e), true); if (/PIN/i.test(e.message || "")) { Admin.setPin(""); location.hash = "#/connexion"; } }
+  Admin.busy = false;
 }
 
-/* ---------- Démarrage : reprise de la table si le téléphone recharge ---------- */
-window.addEventListener("hashchange", render);
-(async function start(){
-  const team = loadTeam();
-  if (team) {
-    try {
-      const answers = await store.myAnswers(team.id);
-      state.team = team; state.i = answers.length; state.score = answers.reduce((s, a) => s + a.points, 0);
-      state.screen = screenFor(state.i);
-    } catch (err) { console.error(err); state.screen = "home"; }
+/* ---- Onglet Partie ---- */
+function renderPartie(el){
+  ensureAdminQuestions();
+  const g = Live.game, qs = Live.questions, q = Live.current(), i = Live.idx(), n = Live.board.length;
+  const answered = q ? (Live.counts[q.id] || 0) : 0;
+  const next = i >= 0 ? qs[i + 1] : qs[0];
+  const last = q && i === qs.length - 1;
+  const courseEnd = q && Live.isCourseEnd(q);
+  const full = q ? Admin.questions.find(x => x.id === q.id) : null;
+  let main = "", secondary = "";
+  if (!qs.length) main = `<p class="notice err">Aucune question. Ajoutez-en dans l'onglet Questions.</p>`;
+  else if (g.status === "lobby") main = `<button class="btn btn-primary" data-act="start">Lancer la question 1</button>`;
+  else if (g.status === "question") { main = `<button class="btn btn-primary" data-act="reveal">Clore et révéler la réponse</button>`; secondary = `<button class="btn btn-ghost" data-act="restart">Relancer le chrono</button>`; }
+  else if (g.status === "reveal") {
+    main = courseEnd ? `<button class="btn btn-primary" data-act="board">Afficher le classement</button>` : `<button class="btn btn-primary" data-act="next">Question suivante (${i + 2})</button>`;
+    secondary = courseEnd && !last ? `<button class="btn btn-ghost" data-act="next">Passer directement à la question ${i + 2}</button>` : "";
   }
-  render();
+  else if (g.status === "board") main = last ? `<button class="btn btn-primary" data-act="finish">Terminer la partie</button>` : `<button class="btn btn-primary" data-act="next">Lancer la question ${i + 2}${next ? ` · ${esc(next.course)}` : ""}</button>`;
+  else if (g.status === "finished") main = `<button class="btn btn-ghost" data-act="lobby">Revenir à l'accueil</button>`;
+
+  el.innerHTML = `
+  <div class="kpis">
+    <div class="kpi"><b>${n}</b><span>tables inscrites</span></div>
+    <div class="kpi ${g.status === "question" && answered < n ? "warn" : ""}"><b>${q ? `${answered}/${n}` : "–"}</b><span>réponses sur la question</span></div>
+    <div class="kpi"><b>${i >= 0 ? i + 1 : 0}/${qs.length}</b><span>questions jouées</span></div>
+    <div class="kpi"><b id="kpi-left">${g.status === "question" ? remaining(g) + " s" : "–"}</b><span>temps restant</span></div>
+  </div>
+  <section class="card fade">
+    <div class="topbar">
+      <span class="pill ${g.status}"><i></i>${STATUS_LABEL[g.status]}</span>
+      <span class="live ${Live.connected ? "" : "off"}"><i></i>${Live.connected ? "temps réel actif" : "temps réel coupé, mise à jour toutes les 4 s"}</span>
+    </div>
+    ${q ? `
+      <div><p class="eyebrow">${esc(courseTitle(q))} · question ${i + 1} sur ${qs.length}</p><h2 style="font-size:24px;margin-top:6px">${esc(q.text)}</h2></div>
+      <div class="options">${q.options.map((o, k) => `<div class="opt ${full && k === full.correct ? "correct" : ""}"><b>${LETTERS[k]}.</b><span>${esc(o)}</span>${full && k === full.correct ? `<span style="margin-left:auto;font-size:12px;color:var(--sage);font-weight:600">BONNE RÉPONSE</span>` : ""}</div>`).join("")}</div>
+      ${full && full.anecdote ? `<p class="notice" style="text-align:left">À lire : ${esc(full.anecdote)}</p>` : ""}
+    ` : g.status === "lobby" ? `<div><h2 style="font-size:24px">Les tables s'inscrivent</h2><p style="color:var(--ink-soft);margin-top:6px">Projetez le grand écran pour afficher le QR code. Première question : « ${esc(qs[0] ? qs[0].text : "")} ».</p></div>`
+      : `<div><h2 style="font-size:24px">Partie terminée</h2><p style="color:var(--ink-soft);margin-top:6px">Le podium est affiché sur le grand écran.</p></div>`}
+    <div class="actions">${main}${secondary}</div>
+    <div class="topbar" style="flex-wrap:wrap">
+      <label style="flex-direction:row;align-items:center;gap:10px">Temps par question
+        <select id="seconds" style="width:auto;padding:8px 12px;font-size:15px">${SECONDS_CHOICES.map(s => `<option value="${s}" ${s === g.seconds ? "selected" : ""}>${s} s</option>`).join("")}</select>
+      </label>
+      ${g.status !== "lobby" ? `<button class="btn btn-ghost btn-sm" data-act="lobby">Retour à l'accueil</button>` : ""}
+    </div>
+  </section>
+  ${g.status === "question" ? `<div class="topbar" style="justify-content:center">${timerHTML(g, true)}</div>` : ""}`;
+
+  el.querySelector("#seconds").addEventListener("change", async e => { await setGame(g.status, g.current_question_id, +e.target.value); toast("Temps par question : " + e.target.value + " s"); });
+  el.addEventListener("click", async e => {
+    const b = e.target.closest("[data-act]"); if (!b) return;
+    const act = b.dataset.act; b.disabled = true;
+    if (act === "start") await setGame("question", qs[0].id);
+    else if (act === "restart") await setGame("question", q.id);
+    else if (act === "reveal") await setGame("reveal", q.id);
+    else if (act === "board") await setGame("board", q.id);
+    else if (act === "next") { if (next) await setGame("question", next.id); }
+    else if (act === "finish") await setGame("finished", q.id);
+    else if (act === "lobby") await setGame("lobby", null);
+  });
+}
+
+/* ---- Onglet Questions ---- */
+function renderQuestions(el){
+  ensureAdminQuestions();
+  const qs = Admin.questions;
+  const cur = Live.game && Live.game.current_question_id;
+  const groups = COURSES.map(c => [c, qs.filter(q => q.course === c)]);
+  el.innerHTML = `
+  <section class="card fade">
+    <div class="topbar"><div><h2 style="font-size:22px">Questions</h2><p style="color:var(--ink-soft);font-size:14px">${qs.length} au total · un classement est proposé à la fin de chaque service.</p></div>
+      <button class="btn btn-primary btn-sm" id="add" ${Admin.editing ? "disabled" : ""}>Ajouter</button></div>
+    ${Admin.editing && Admin.editing.id === null ? editorHTML(Admin.editing) : ""}
+    ${!qs.length && Admin.loadingQ ? `<div class="empty">Chargement…</div>` : ""}
+    ${groups.map(([c, list]) => `
+      <p class="eyebrow" style="margin-top:6px">${c} · ${COURSE_SUB[c]} · ${list.length}</p>
+      <div class="qlist">${list.length ? list.map(q => Admin.editing && Admin.editing.id === q.id ? editorHTML(Admin.editing) : `
+        <div class="qrow ${q.id === cur ? "current" : ""}" data-id="${q.id}">
+          <span class="n">${qs.indexOf(q) + 1}</span>
+          <span class="t"><b>${esc(q.text)}</b><span>${esc(q.options[q.correct])}</span>${q.anecdote ? `<span class="anec">${esc(q.anecdote)}</span>` : ""}</span>
+          <span class="ops">
+            <button class="icon" data-op="up" title="Monter" ${qs.indexOf(q) === 0 ? "disabled" : ""}>↑</button>
+            <button class="icon" data-op="down" title="Descendre" ${qs.indexOf(q) === qs.length - 1 ? "disabled" : ""}>↓</button>
+            <button class="icon" data-op="edit" title="Modifier">✎</button>
+            <button class="icon" data-op="del" title="Supprimer">✕</button>
+          </span>
+        </div>
+        ${Admin.confirm === q.id ? `<div class="inline-confirm">Supprimer cette question ? <button class="btn btn-danger btn-sm" data-op="del-yes" data-id="${q.id}">Oui, supprimer</button><button class="btn btn-ghost btn-sm" data-op="del-no">Annuler</button></div>` : ""}`).join("") : `<div class="empty" style="padding:8px">Aucune question dans ce service.</div>`}</div>`).join("")}
+  </section>`;
+  el.querySelector("#add").addEventListener("click", () => { Admin.editing = { id: null, course: "Entrée", text: "", options: ["", "", "", ""], correct: 0, anecdote: "" }; currentView.render(); });
+  el.addEventListener("click", async e => {
+    const b = e.target.closest("[data-op]"); if (!b) return;
+    const row = b.closest("[data-id]"); const id = b.dataset.id || (row && row.dataset.id); const q = qs.find(x => x.id === id);
+    const op = b.dataset.op;
+    try {
+      if (op === "edit") { Admin.editing = { ...q, options: [...q.options] }; Admin.confirm = null; currentView.render(); }
+      else if (op === "del") { Admin.confirm = id; currentView.render(); }
+      else if (op === "del-no") { Admin.confirm = null; currentView.render(); }
+      else if (op === "del-yes") { await rpc("admin_delete_question", { p_pin: Admin.pin(), p_id: id }); Admin.confirm = null; await reloadQuestions(); toast("Question supprimée"); }
+      else if (op === "up" || op === "down") {
+        const ids = qs.map(x => x.id); const k = ids.indexOf(id); const j = op === "up" ? k - 1 : k + 1;
+        if (j < 0 || j >= ids.length) return;
+        [ids[k], ids[j]] = [ids[j], ids[k]];
+        await rpc("admin_reorder_questions", { p_pin: Admin.pin(), p_ids: ids });
+        // le service suit la nouvelle place : on aligne sur le voisin échangé
+        const moved = qs.find(x => x.id === id), neighbour = qs.find(x => x.id === ids[k]);
+        if (moved && neighbour && moved.course !== neighbour.course) await rpc("admin_save_question", { p_pin: Admin.pin(), p_id: moved.id, p_position: j + 1, p_course: neighbour.course, p_text: moved.text, p_options: moved.options, p_correct: moved.correct, p_anecdote: moved.anecdote });
+        await reloadQuestions();
+      }
+      else if (op === "cancel") { Admin.editing = null; currentView.render(); }
+      else if (op === "save") await saveEditor(el);
+    } catch (err) { toast(humanError(err), true); }
+  });
+}
+function editorHTML(q){
+  return `<form class="edit fade" id="editor" data-id="${q.id || ""}">
+    <div class="two">
+      <label>Service<select id="e-course">${COURSES.map(c => `<option ${c === q.course ? "selected" : ""}>${c}</option>`).join("")}</select></label>
+      <label>Anecdote lue après la réponse<input id="e-anecdote" maxlength="500" value="${esc(q.anecdote)}" placeholder="Facultatif"></label>
+    </div>
+    <label>Question<textarea id="e-text" maxlength="300" required>${esc(q.text)}</textarea></label>
+    <div class="opts">
+      <p class="eyebrow">Réponses · cochez la bonne</p>
+      ${q.options.map((o, k) => `<div class="optrow"><input type="radio" name="correct" value="${k}" ${k === q.correct ? "checked" : ""} aria-label="Bonne réponse ${LETTERS[k]}"><input id="e-opt-${k}" maxlength="80" required value="${esc(o)}" placeholder="Réponse ${LETTERS[k]}"></div>`).join("")}
+    </div>
+    <div class="actions"><button class="btn btn-primary" type="button" data-op="save">${q.id ? "Enregistrer" : "Ajouter la question"}</button><button class="btn btn-ghost" type="button" data-op="cancel">Annuler</button></div>
+  </form>`;
+}
+async function saveEditor(el){
+  const f = el.querySelector("#editor"); if (!f) return;
+  const text = f.querySelector("#e-text").value.trim();
+  const options = [0, 1, 2, 3].map(k => f.querySelector("#e-opt-" + k).value.trim());
+  const checked = f.querySelector("input[name=correct]:checked");
+  const correct = checked ? +checked.value : NaN;
+  const course = f.querySelector("#e-course").value, anecdote = f.querySelector("#e-anecdote").value.trim();
+  if (!text || options.some(o => !o) || Number.isNaN(correct)) { toast("Question, quatre réponses et une bonne réponse cochée sont nécessaires.", true); return; }
+  const id = f.dataset.id || null;
+  const existing = Admin.questions.find(q => q.id === id);
+  // Nouvelle question : à la fin de son service
+  const lastOfCourse = Admin.questions.filter(q => q.course === course).map(q => q.position).reduce((m, p) => Math.max(m, p), 0);
+  const position = existing ? existing.position : (lastOfCourse || Admin.questions.length) + 1;
+  await rpc("admin_save_question", { p_pin: Admin.pin(), p_id: id, p_position: position, p_course: course, p_text: text, p_options: options, p_correct: correct, p_anecdote: anecdote });
+  Admin.editing = null;
+  await reloadQuestions(true);
+  toast(id ? "Question enregistrée" : "Question ajoutée");
+}
+async function reloadQuestions(renumber){
+  await Admin.loadQuestions();
+  // Ordre : service, puis position, puis date de création (une question ajoutée se place en fin de service)
+  const order = [...Admin.questions].sort((a, b) => COURSES.indexOf(a.course) - COURSES.indexOf(b.course) || a.position - b.position || (a.created_at < b.created_at ? -1 : 1));
+  if (renumber || order.some((q, k) => q.position !== k + 1)) {
+    await rpc("admin_reorder_questions", { p_pin: Admin.pin(), p_ids: order.map(q => q.id) });
+    await Admin.loadQuestions();
+  }
+  await Live.loadQuestions();
+  if (currentView) currentView.render();
+}
+
+/* ---- Onglet Tables ---- */
+function renderTables(el){
+  const rows = Live.board;
+  el.innerHTML = `
+  <section class="card fade">
+    <div class="topbar"><div><h2 style="font-size:22px">Tables inscrites</h2><p style="color:var(--ink-soft);font-size:14px">${rows.length} table${rows.length > 1 ? "s" : ""} · classement en direct</p></div><span class="live ${Live.connected ? "" : "off"}"><i></i>en direct</span></div>
+    <div class="qlist">${rows.length ? rows.map((r, k) => `
+      <div class="qrow" data-id="${r.id}">
+        <span class="n">${k + 1}</span>
+        <span class="t"><b>${esc(r.name)}${r.table_no ? ` <span style="color:var(--ink-soft);font-weight:400">· table ${esc(r.table_no)}</span>` : ""}</b><span style="color:var(--ink-soft);font-weight:400">${r.score} points · ${r.answered} réponse${r.answered > 1 ? "s" : ""}</span></span>
+        <span class="ops"><button class="icon" data-op="del" title="Retirer">✕</button></span>
+      </div>
+      ${Admin.confirm === r.id ? `<div class="inline-confirm">Retirer « ${esc(r.name)} » et ses réponses ? <button class="btn btn-danger btn-sm" data-op="del-yes" data-id="${r.id}">Oui, retirer</button><button class="btn btn-ghost btn-sm" data-op="del-no">Annuler</button></div>` : ""}`).join("") : `<div class="empty">Aucune table pour l'instant. Le QR code est sur le grand écran.</div>`}</div>
+  </section>`;
+  el.addEventListener("click", async e => {
+    const b = e.target.closest("[data-op]"); if (!b) return;
+    const id = b.dataset.id || b.closest("[data-id]").dataset.id;
+    try {
+      if (b.dataset.op === "del") { Admin.confirm = id; currentView.render(); }
+      else if (b.dataset.op === "del-no") { Admin.confirm = null; currentView.render(); }
+      else if (b.dataset.op === "del-yes") { await rpc("admin_delete_team", { p_pin: Admin.pin(), p_id: id }); Admin.confirm = null; await Live.loadBoard(); toast("Table retirée"); }
+    } catch (err) { toast(humanError(err), true); }
+  });
+}
+
+/* ---- Onglet Réglages ---- */
+function renderReglages(el){
+  el.innerHTML = `
+  <section class="card fade">
+    <h2 style="font-size:22px">Code d'accès</h2>
+    <form id="pinform" class="two">
+      <label>Nouveau code (4 à 8 chiffres)<input id="np1" inputmode="numeric" pattern="[0-9]{4,8}" maxlength="8" required autocomplete="off"></label>
+      <label>Confirmer<input id="np2" inputmode="numeric" pattern="[0-9]{4,8}" maxlength="8" required autocomplete="off"></label>
+      <button class="btn btn-primary" type="submit" style="grid-column:1/-1">Changer le code</button>
+    </form>
+  </section>
+  <section class="card fade">
+    <h2 style="font-size:22px">Remise à zéro</h2>
+    <p style="color:var(--ink-soft)">Efface toutes les tables et leurs réponses, remet la partie en attente. Les questions sont conservées. À faire juste avant le repas, après vos essais.</p>
+    ${Admin.confirm === "reset" ? `<div class="inline-confirm">Vraiment tout effacer ? <button class="btn btn-danger btn-sm" id="reset-yes">Oui, tout effacer</button><button class="btn btn-ghost btn-sm" id="reset-no">Annuler</button></div>` : `<div class="actions"><button class="btn btn-danger" id="reset">Effacer les tables et les scores</button></div>`}
+  </section>
+  <section class="card fade">
+    <h2 style="font-size:22px">Liens utiles</h2>
+    <p style="color:var(--ink-soft);font-size:14px">Lien des tables, à transformer en QR code pour les cartons :</p>
+    <p class="url" style="text-align:left">${esc(playerURL())}</p>
+    <p style="color:var(--ink-soft);font-size:14px">Grand écran, à ouvrir sur l'ordinateur branché au vidéoprojecteur :</p>
+    <p class="url" style="text-align:left">${esc(baseURL() + "#/ecran")}</p>
+    <p style="color:var(--ink-soft);font-size:14px">Barème : 100 points par bonne réponse, jusqu'à 50 points de bonus selon la rapidité. Les réponses arrivées après le temps imparti ne comptent pas.</p>
+  </section>`;
+  el.querySelector("#pinform").addEventListener("submit", async e => {
+    e.preventDefault();
+    const a = el.querySelector("#np1").value, b = el.querySelector("#np2").value;
+    if (a !== b) { toast("Les deux codes ne correspondent pas.", true); return; }
+    try { await rpc("admin_change_pin", { p_pin: Admin.pin(), p_new: a }); Admin.setPin(a); toast("Code modifié"); e.target.reset(); }
+    catch (err) { toast(humanError(err), true); }
+  });
+  const r = el.querySelector("#reset"); if (r) r.addEventListener("click", () => { Admin.confirm = "reset"; currentView.render(); });
+  const y = el.querySelector("#reset-yes"); if (y) y.addEventListener("click", async () => { try { await rpc("admin_reset", { p_pin: Admin.pin() }); Admin.confirm = null; await Live.loadGame(); await Live.loadBoard(); toast("Partie remise à zéro"); } catch (err) { toast(humanError(err), true); } });
+  const no = el.querySelector("#reset-no"); if (no) no.addEventListener("click", () => { Admin.confirm = null; currentView.render(); });
+}
+
+/* ============================================================
+   Démarrage
+   ============================================================ */
+(async function boot(){
+  if (!location.hash) history.replaceState(null, "", "#/jouer");
+  navigate();
+  try { await Live.start(); } catch (e) { console.error(e); toast("Connexion à la partie impossible. Vérifiez le réseau.", true); }
+  navigate();
 })();
 </script>
 </body>
