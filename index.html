@@ -328,12 +328,30 @@ function rowHTML(r, k, mineId){
     <span class="team"><b>${esc(r.name)}</b><span>${r.table_no ? `table ${esc(r.table_no)} · ` : ""}${r.answered} réponse${r.answered > 1 ? "s" : ""}</span></span>
     <span class="pts">${r.score}</span></div>`;
 }
+const PAUSE_JOKES = [
+  "L'animateur est parti se resservir une coupe. Le chrono aussi.",
+  "Geoffrey vérifie que les alliances sont toujours là.",
+  "Clare a demandé une retouche de rouge à lèvres. On attend.",
+  "Les mariés négocient encore un détail : qui fera la vaisselle.",
+  "L'animateur cherche ses lunettes. Elles sont sur sa tête.",
+  "Pause réglementaire : le témoin a perdu son discours.",
+  "Le DJ a débranché la mauvaise prise. Il s'en occupe.",
+  "Profitez-en pour vérifier que la table d'à côté ne triche pas.",
+  "Quelqu'un a vu la belle-mère ? Elle avait la télécommande.",
+  "Le chrono fait la sieste. Les petits-fours, eux, ne vous attendront pas.",
+];
+// La même blague sur tous les écrans : choisie d'après l'heure de la pause
+function pauseJoke(){
+  const t = Live.game && Live.game.paused_at ? Math.floor(new Date(Live.game.paused_at).getTime() / 1000) : 0;
+  return PAUSE_JOKES[t % PAUSE_JOKES.length];
+}
 function pauseHTML(team){
   return `<section class="card menu-card wait fade">
     ${team ? `<p class="eyebrow">${esc(team.name)}${team.table_no ? ` · table ${esc(team.table_no)}` : ""}</p>` : ""}
     <div class="monogram">C<small>&amp;</small>G</div>
-    <h2 class="course">Petite pause</h2>
-    <p class="lede">L'animateur règle un détail. Le chrono est gelé, la partie reprend dans un instant.</p>
+    <h2 class="course">Entracte</h2>
+    <p class="lede">${esc(pauseJoke())}</p>
+    <p class="lede" style="font-size:13px">Le chrono est gelé, lui aussi. Interdiction de googler en attendant.</p>
     <div class="pulse"></div>
   </section>`;
 }
