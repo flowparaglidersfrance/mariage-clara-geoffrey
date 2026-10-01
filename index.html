@@ -61,7 +61,7 @@ textarea{min-height:70px;resize:vertical}
 .notice.err{color:var(--wrong)}
 .pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:4px 10px;border-radius:999px;border:1px solid var(--line);color:var(--ink-soft)}
 .pill i{width:7px;height:7px;border-radius:50%;background:var(--line);display:inline-block}
-.pill.lobby i{background:var(--gold)} .pill.question i{background:var(--accent)} .pill.reveal i{background:var(--sage)} .pill.board i{background:var(--sage)} .pill.finished i{background:var(--ink-soft)}
+.pill.lobby i{background:var(--gold)} .pill.question i{background:var(--accent)} .pill.reveal i{background:var(--sage)} .pill.board i{background:var(--sage)} .pill.finished i{background:var(--ink-soft)} .pill.paused i{background:var(--gold)}
 .live{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-soft)}
 .live i{width:7px;height:7px;border-radius:50%;background:var(--sage);display:inline-block}
 .live.off i{background:var(--wrong)}
@@ -198,7 +198,7 @@ const RANKS = [
   [0.25, "Pièces rapportées", "Encore quelques repas de famille et ce sera bon."],
   [0,    "Table du fond", "Vous êtes venus pour la fête, et c'est très bien aussi."],
 ];
-const STATUS_LABEL = { lobby: "En attente", question: "Question ouverte", reveal: "Réponse révélée", board: "Classement", finished: "Partie terminée" };
+const STATUS_LABEL = { lobby: "En attente", question: "Question ouverte", reveal: "Réponse révélée", board: "Classement", finished: "Partie terminée", paused: "En pause" };
 
 /* ============================================================
    Outils
@@ -228,6 +228,7 @@ function humanError(e){
   if (/PIN/i.test(m)) return "Code PIN incorrect.";
   if (/plus ouverte/.test(m)) return "La question vient d'être fermée.";
   if (/Temps écoulé/.test(m)) return "Trop tard, le temps est écoulé.";
+  if (/en pause/.test(m)) return "La partie est en pause.";
   if (/duplicate|23505/.test(m)) return "Déjà répondu.";
   if (/Failed to fetch|NetworkError|network/i.test(m)) return "Pas de réseau. Réessayez.";
   return m || "Une erreur est survenue.";
@@ -241,7 +242,8 @@ async function syncClock(){
 const serverNow = () => Date.now() + clockOffset;
 function remaining(game){
   if (!game || game.status !== "question" || !game.question_started_at) return 0;
-  return Math.max(0, Math.ceil(game.seconds - (serverNow() - new Date(game.question_started_at).getTime()) / 1000));
+  const now = game.paused && game.paused_at ? new Date(game.paused_at).getTime() : serverNow();
+  return Math.max(0, Math.ceil(game.seconds - (now - new Date(game.question_started_at).getTime()) / 1000));
 }
 
 /* ---- Données partagées : état de la partie, questions publiques, classement ---- */
@@ -326,6 +328,15 @@ function rowHTML(r, k, mineId){
     <span class="team"><b>${esc(r.name)}</b><span>${r.table_no ? `table ${esc(r.table_no)} · ` : ""}${r.answered} réponse${r.answered > 1 ? "s" : ""}</span></span>
     <span class="pts">${r.score}</span></div>`;
 }
+function pauseHTML(team){
+  return `<section class="card menu-card wait fade">
+    ${team ? `<p class="eyebrow">${esc(team.name)}${team.table_no ? ` · table ${esc(team.table_no)}` : ""}</p>` : ""}
+    <div class="monogram">C<small>&amp;</small>G</div>
+    <h2 class="course">Petite pause</h2>
+    <p class="lede">L'animateur règle un détail. Le chrono est gelé, la partie reprend dans un instant.</p>
+    <div class="pulse"></div>
+  </section>`;
+}
 function courseTitle(q){ return q ? `${q.course} · ${COURSE_SUB[q.course] || ""}` : ""; }
 function afterCourse(q){ return q ? ` après ${q.course === "Entrée" ? "l'" : "le "}${q.course.toLowerCase()}` : ""; }
 function qrInto(el, text){ try { if (window.QRCode && el) new QRCode(el, { text, width: 180, height: 180, colorDark: "#2A1F2D", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.M }); } catch (e) {} }
@@ -349,6 +360,7 @@ const PlayerView = {
     if (!g) { app.innerHTML = `<section class="card menu-card"><div class="empty">Connexion à la partie…</div></section>`; return; }
     if (!team) return this.join(app, g);
     const q = Live.current();
+    if (g.paused) { app.innerHTML = pauseHTML(team); return; }
     if (g.status === "finished") return this.finished(app, team);
     if (g.status === "lobby" || !q) return this.lobby(app, team);
     if (g.status === "question") return this.question(app, g, q, team);
@@ -356,7 +368,7 @@ const PlayerView = {
     if (g.status === "board") return this.board(app, q, team);
   },
   tick(){
-    if (Live.game && Live.game.status === "question") {
+    if (Live.game && Live.game.status === "question" && !Live.game.paused) {
       updateTimers(Live.game);
       if (remaining(Live.game) === 0 && !document.querySelector("[data-timeout]") && !document.querySelector("[data-answered]")) this.render();
     }
@@ -506,6 +518,7 @@ const ScreenView = {
     const app = document.getElementById("app");
     if (!g) { app.innerHTML = `<section class="card menu-card"><div class="empty">Connexion…</div></section>`; return; }
     const n = Live.board.length;
+    if (g.paused) { app.innerHTML = pauseHTML(null); return; }
     if (g.status === "finished") {
       const top = Live.board.slice(0, 3), rest = Live.board.slice(3);
       app.innerHTML = `
@@ -573,7 +586,7 @@ const ScreenView = {
       </section>`;
     }
   },
-  tick(){ if (Live.game && Live.game.status === "question") updateTimers(Live.game); },
+  tick(){ if (Live.game && Live.game.status === "question" && !Live.game.paused) updateTimers(Live.game); },
 };
 
 /* ============================================================
@@ -638,7 +651,7 @@ function AdminView(tab){
       ({ partie: renderPartie, questions: renderQuestions, tables: renderTables, reglages: renderReglages }[tab] || renderPartie)(el);
     },
     tick(){
-      if (Live.game && Live.game.status === "question") { updateTimers(Live.game); const el = document.getElementById("kpi-left"); if (el) el.textContent = remaining(Live.game) + " s"; }
+      if (Live.game && Live.game.status === "question" && !Live.game.paused) { updateTimers(Live.game); const el = document.getElementById("kpi-left"); if (el) el.textContent = remaining(Live.game) + " s"; }
     },
   };
 }
@@ -647,6 +660,12 @@ function ensureAdminQuestions(){
   Admin.loadingQ = true;
   Admin.loadQuestions().then(() => { Admin.loadingQ = false; if (currentView) currentView.render(); })
     .catch(e => { Admin.loadingQ = false; toast(humanError(e), true); if (/PIN/i.test(e.message || "")) { Admin.setPin(""); location.hash = "#/connexion"; } });
+}
+async function setPause(paused){
+  if (Admin.busy) return; Admin.busy = true;
+  try { await rpc("admin_pause", { p_pin: Admin.pin(), p_paused: paused }); await Live.loadGame(); toast(paused ? "Partie en pause, chrono gelé" : "La partie reprend"); }
+  catch (e) { toast(humanError(e), true); if (/PIN/i.test(e.message || "")) { Admin.setPin(""); location.hash = "#/connexion"; } }
+  Admin.busy = false;
 }
 async function setGame(status, qid, seconds){
   if (Admin.busy) return; Admin.busy = true;
@@ -674,6 +693,9 @@ function renderPartie(el){
   }
   else if (g.status === "board") main = last ? `<button class="btn btn-primary" data-act="finish">Terminer la partie</button>` : `<button class="btn btn-primary" data-act="next">Lancer la question ${i + 2}${next ? ` · ${esc(next.course)}` : ""}</button>`;
   else if (g.status === "finished") main = `<button class="btn btn-ghost" data-act="lobby">Revenir à l'accueil</button>`;
+  const canPause = qs.length && g.status !== "lobby" && g.status !== "finished";
+  if (g.paused) { main = `<button class="btn btn-primary" data-act="resume">Reprendre la partie</button>`; secondary = ""; }
+  else if (canPause) secondary += `<button class="btn btn-ghost" data-act="pause">Mettre en pause</button>`;
 
   el.innerHTML = `
   <div class="kpis">
@@ -684,7 +706,7 @@ function renderPartie(el){
   </div>
   <section class="card fade">
     <div class="topbar">
-      <span class="pill ${g.status}"><i></i>${STATUS_LABEL[g.status]}</span>
+      <span class="pill ${g.paused ? "paused" : g.status}"><i></i>${g.paused ? "En pause · " + STATUS_LABEL[g.status].toLowerCase() : STATUS_LABEL[g.status]}</span>
       <span class="live ${Live.connected ? "" : "off"}"><i></i>${Live.connected ? "temps réel actif" : "temps réel coupé, mise à jour toutes les 4 s"}</span>
     </div>
     ${q ? `
@@ -701,7 +723,7 @@ function renderPartie(el){
       ${g.status !== "lobby" ? `<button class="btn btn-ghost btn-sm" data-act="lobby">Retour à l'accueil</button>` : ""}
     </div>
   </section>
-  ${g.status === "question" ? `<div class="topbar" style="justify-content:center">${timerHTML(g, true)}</div>` : ""}`;
+  ${g.status === "question" && !g.paused ? `<div class="topbar" style="justify-content:center">${timerHTML(g, true)}</div>` : ""}`;
 
   el.querySelector("#seconds").addEventListener("change", async e => { await setGame(g.status, g.current_question_id, +e.target.value); toast("Temps par question : " + e.target.value + " s"); });
   el.addEventListener("click", async e => {
@@ -714,6 +736,7 @@ function renderPartie(el){
     else if (act === "next") { if (next) await setGame("question", next.id); }
     else if (act === "finish") await setGame("finished", q.id);
     else if (act === "lobby") await setGame("lobby", null);
+    else if (act === "pause" || act === "resume") await setPause(act === "pause");
   });
 }
 
