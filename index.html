@@ -185,7 +185,7 @@ button.opt:not([disabled]):hover{border-color:var(--accent)}
 .edit{display:grid;gap:12px;padding:16px;border-radius:14px;border:1px solid var(--accent);background:var(--paper)}
 .edit .opts{display:grid;gap:8px}
 .edit .optrow{display:grid;grid-template-columns:28px 1fr;gap:8px;align-items:center}
-.edit .optrow input[type=radio]{width:20px;height:20px;accent-color:var(--sage);padding:0}
+.edit .optrow input[type=radio],.edit .optrow input[type=checkbox]{width:20px;height:20px;accent-color:var(--sage);padding:0}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 @media (max-width:520px){.two{grid-template-columns:1fr}}
 .inline-confirm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:14px;color:var(--ink-soft)}
@@ -378,8 +378,12 @@ function mediaHTML(r){
   return `<div class="media"><img src="${esc(urls[0])}" alt=""></div>`;
 }
 // Plusieurs photos : une adresse par ligne, diaporama à la révélation (4 s par photo)
-function isGood(correct, k){ return correct === -1 || k === correct; }
-function goodLabel(q, correct){ return correct === -1 ? "Toutes les réponses sont bonnes !" : q.options[correct]; }
+// r : ligne de question (éditeur) ou de révélation. Plusieurs bonnes réponses : multi + corrects ; toutes bonnes : correct = -1
+function goodSet(r){ return r.multi && Array.isArray(r.corrects) ? r.corrects : r.correct === -1 ? null : [r.correct]; }
+function isGood(r, k){ const s = goodSet(r); return s === null || s.includes(k); }
+function goodLabel(q, r){ const s = goodSet(r); if (s === null) return "Toutes les réponses sont bonnes !"; if (s.length > 1) return s.map(k => `${LETTERS[k]}. ${q.options[k]}`).join(" · "); return q.options[s[0]]; }
+function picked(mine, k){ return Array.isArray(mine) ? mine.includes(k) : mine === k; }
+function picksLabel(q, mine){ return (Array.isArray(mine) ? mine : [mine]).map(k => `${LETTERS[k]}. ${q.options[k]}`).join(", "); }
 function mediaUrls(s){ return String(s || "").split("\n").map(u => u.trim()).filter(Boolean); }
 setInterval(() => {
   document.querySelectorAll(".slides").forEach(s => {
@@ -435,7 +439,7 @@ const Player = {
   team(){ return ls.get("cg-team", null); },
   answered(){ return ls.get("cg-answered", {}); },
   markAnswered(qid, choice){ const a = this.answered(); a[qid] = choice; ls.set("cg-answered", a); },
-  reveal: {}, revealing: null,
+  reveal: {}, revealing: null, draft: {},
 };
 const PlayerView = {
   render(){
@@ -553,6 +557,8 @@ const PlayerView = {
     const mine = Player.answered()[q.id];
     const left = remaining(g);
     const closed = mine !== undefined || left === 0;
+    // Réponses multiples : cases cochées en attente de validation (conservées entre deux rafraîchissements)
+    const picks = new Set(mine !== undefined ? (Array.isArray(mine) ? mine : [mine]) : (Player.draft[q.id] || []));
     app.innerHTML = `
     <section class="card menu-card fade">
       <div class="topbar">
@@ -560,21 +566,37 @@ const PlayerView = {
         ${timerHTML(g)}
       </div>
       <h2 class="qtext">${esc(q.text)}</h2>
+      ${q.multi && !closed ? `<p class="notice" style="color:var(--accent)">Plusieurs bonnes réponses : cochez tout ce qui est bon, puis validez.</p>` : ""}
       <div class="options" id="options">
-        ${q.options.map((o, k) => `<button class="opt ${mine === k ? "chosen" : ""} ${closed && mine !== k ? "dim" : ""}" type="button" data-k="${k}" ${closed ? "disabled" : ""}><b>${LETTERS[k]}.</b><span>${esc(o)}</span></button>`).join("")}
+        ${q.options.map((o, k) => `<button class="opt ${picks.has(k) ? "chosen" : ""} ${closed && !picks.has(k) ? "dim" : ""}" type="button" data-k="${k}" ${closed ? "disabled" : ""}><b>${LETTERS[k]}.</b><span>${esc(o)}</span></button>`).join("")}
       </div>
+      ${q.multi && !closed ? `<button class="btn btn-primary" id="validate" type="button" ${picks.size ? "" : "disabled"}>Valider nos réponses</button>` : ""}
       ${mine !== undefined ? `<p class="notice" data-answered>Réponse enregistrée. La bonne réponse arrive dès que l'animateur la révèle.</p>`
-        : left === 0 ? `<p class="notice err" data-timeout>Temps écoulé. Patience, la réponse arrive.</p>` : `<p class="notice">Une seule réponse par table, choisissez bien.</p>`}
+        : left === 0 ? `<p class="notice err" data-timeout>Temps écoulé. Patience, la réponse arrive.</p>` : `<p class="notice">${q.multi ? "Une seule validation par table : bonnes réponses cochées = points, mauvaises cochées = points en moins." : "Une seule réponse par table, choisissez bien."}</p>`}
     </section>`;
-    document.getElementById("options").addEventListener("click", async e => {
-      const b = e.target.closest(".opt"); if (!b || b.disabled) return;
-      document.querySelectorAll(".opt").forEach(x => x.disabled = true); b.classList.add("chosen");
-      try { await rpc("submit_answer", { p_team_id: team.id, p_question_id: q.id, p_choice: +b.dataset.k }); Player.markAnswered(q.id, +b.dataset.k); this.render(); }
-      catch (err) {
-        if (/23505|duplicate/.test(err.message || "")) { Player.markAnswered(q.id, +b.dataset.k); this.render(); }
+    const opts = document.getElementById("options"), val = document.getElementById("validate");
+    const send = async (choice) => {
+      opts.querySelectorAll(".opt").forEach(x => x.disabled = true); if (val) val.disabled = true;
+      try {
+        if (q.multi) await rpc("submit_answers", { p_team_id: team.id, p_question_id: q.id, p_choices: choice });
+        else await rpc("submit_answer", { p_team_id: team.id, p_question_id: q.id, p_choice: choice });
+        Player.markAnswered(q.id, choice); this.render();
+      } catch (err) {
+        if (/23505|duplicate/.test(err.message || "")) { Player.markAnswered(q.id, choice); this.render(); }
         else { toast(humanError(err), true); this.render(); }
       }
+    };
+    opts.addEventListener("click", e => {
+      const b = e.target.closest(".opt"); if (!b || b.disabled) return;
+      if (q.multi) {
+        b.classList.toggle("chosen");
+        Player.draft[q.id] = [...opts.querySelectorAll(".opt.chosen")].map(x => +x.dataset.k);
+        if (val) val.disabled = !Player.draft[q.id].length;
+        return;
+      }
+      b.classList.add("chosen"); send(+b.dataset.k);
     });
+    if (val) val.addEventListener("click", () => { const ks = [...opts.querySelectorAll(".opt.chosen")].map(x => +x.dataset.k); if (ks.length) send(ks); });
   },
 
   suspense(app, g, q, team){
@@ -583,7 +605,7 @@ const PlayerView = {
     <section class="card menu-card fade">
       <div><p class="eyebrow">${esc(courseTitle(q))}</p><p class="eyebrow" style="color:var(--accent)">Question ${Live.idx() + 1} sur ${Live.questions.length}</p></div>
       <h2 class="qtext">${esc(q.text)}</h2>
-      ${mine !== undefined ? `<p class="notice">Votre table a répondu <strong>${LETTERS[mine]}. ${esc(q.options[mine])}</strong></p>` : `<p class="notice err">Votre table n'a pas répondu à temps.</p>`}
+      ${mine !== undefined ? `<p class="notice">Votre table a répondu <strong>${esc(picksLabel(q, mine))}</strong></p>` : `<p class="notice err">Votre table n'a pas répondu à temps.</p>`}
       ${g.ask_couple ? `<div class="couple"><p class="eyebrow">La parole aux mariés</p><h3>${esc(COUPLE.her)}, ${esc(COUPLE.him)}, votre réponse ?</h3></div>` : `<div class="wait" style="padding-block:10px"><h2 class="course" style="font-size:26px">${esc(suspenseLine())}</h2><div class="pulse" style="margin-top:10px"></div></div>`}
       <p class="lede" style="font-size:13px">Toutes les réponses sont là. Regardez le grand écran.</p>
     </section>`;
@@ -599,16 +621,16 @@ const PlayerView = {
   reveal(app, q, team){
     const r = Player.reveal[q.id];
     if (!r) this.loadReveal(q, team);
-    const mine = r ? r.my_choice : Player.answered()[q.id];
+    const mine = r ? (r.multi ? r.my_choices : r.my_choice) : Player.answered()[q.id];
     app.innerHTML = `
     <section class="card menu-card fade">
       <div><p class="eyebrow">${esc(courseTitle(q))}</p><p class="eyebrow" style="color:var(--accent)">Question ${Live.idx() + 1} sur ${Live.questions.length}</p></div>
       <h2 class="qtext">${esc(q.text)}</h2>
       <div class="options">
-        ${q.options.map((o, k) => `<div class="opt ${r && isGood(r.correct, k) ? "correct" : mine === k ? "wrong" : "dim"}"><b>${LETTERS[k]}.</b><span>${esc(o)}</span></div>`).join("")}
+        ${q.options.map((o, k) => `<div class="opt ${r && isGood(r, k) ? "correct" : picked(mine, k) ? "wrong" : "dim"}"><b>${LETTERS[k]}.</b><span>${esc(o)}</span></div>`).join("")}
       </div>
-      ${r ? `<div class="verdict ${r.my_correct ? "" : "bad"} fade">
-        <strong>${r.my_choice === null ? "Pas de réponse de votre table." : r.my_correct ? `Exact, <span class="points">+${r.my_points}</span>` : "Raté."}</strong>
+      ${r ? `<div class="verdict ${r.my_correct || r.my_points > 0 ? "" : "bad"} fade">
+        <strong>${r.my_choice === null && !r.my_choices ? "Pas de réponse de votre table." : r.my_correct ? `Exact, <span class="points">+${r.my_points}</span>` : r.my_points > 0 ? `Presque, <span class="points">+${r.my_points}</span>` : "Raté."}</strong>
         ${r.anecdote ? `<p>${esc(r.anecdote)}</p>` : ""}
       </div>${mediaHTML(r)}` : `<p class="notice">Révélation…</p>`}
       <p class="notice">L'animateur enchaîne dans un instant.</p>
@@ -698,6 +720,7 @@ const ScreenView = {
           ${timerHTML(g, true)}
         </div>
         <h1 class="qtext">${esc(q.text)}</h1>
+        ${q.multi ? `<p class="eyebrow" style="font-size:16px;color:var(--accent)">Plusieurs bonnes réponses : cochez tout ce qui est bon, puis validez</p>` : ""}
         <div class="options">${q.options.map((o, k) => `<div class="opt"><b>${LETTERS[k]}.</b><span>${esc(o)}</span></div>`).join("")}</div>
         <p class="eyebrow" style="font-size:16px">${answered} table${answered > 1 ? "s" : ""} sur ${n} ${answered > 1 ? "ont" : "a"} répondu</p>
       </section>`;
@@ -726,8 +749,8 @@ const ScreenView = {
       <section class="card menu-card fade">
         <div><p class="eyebrow">${esc(courseTitle(q))}</p><h2 style="font-size:22px;color:var(--accent)">Question ${Live.idx() + 1} sur ${Live.questions.length}</h2></div>
         <h1 class="qtext">${esc(q.text)}</h1>
-        <div class="options">${q.options.map((o, k) => `<div class="opt ${r ? (isGood(r.correct, k) ? "correct" : "dim") : ""}"><b>${LETTERS[k]}.</b><span>${esc(o)}</span></div>`).join("")}</div>
-        ${r ? `<div class="verdict fade"><strong>${r.correct === -1 ? "Toutes les réponses sont bonnes !" : `La bonne réponse : ${esc(q.options[r.correct])}`}</strong>${r.anecdote ? `<p>${esc(r.anecdote)}</p>` : ""}</div>${mediaHTML(r)}` : ""}
+        <div class="options">${q.options.map((o, k) => `<div class="opt ${r ? (isGood(r, k) ? "correct" : "dim") : ""}"><b>${LETTERS[k]}.</b><span>${esc(o)}</span></div>`).join("")}</div>
+        ${r ? `<div class="verdict fade"><strong>${goodSet(r) === null ? "Toutes les réponses sont bonnes !" : goodSet(r).length > 1 ? `Les bonnes réponses : ${esc(goodLabel(q, r))}` : `La bonne réponse : ${esc(q.options[r.correct])}`}</strong>${r.anecdote ? `<p>${esc(r.anecdote)}</p>` : ""}</div>${mediaHTML(r)}` : ""}
       </section>`;
       return;
     }
@@ -877,7 +900,7 @@ function renderPartie(el){
     </div>
     ${q ? `
       <div><p class="eyebrow">${esc(courseTitle(q))} · question ${i + 1} sur ${qs.length}</p><h2 style="font-size:24px;margin-top:6px">${esc(q.text)}</h2></div>
-      <div class="options">${q.options.map((o, k) => `<div class="opt ${full && isGood(full.correct, k) ? "correct" : ""}"><b>${LETTERS[k]}.</b><span>${esc(o)}</span>${full && isGood(full.correct, k) ? `<span style="margin-left:auto;font-size:12px;color:var(--sage);font-weight:600">BONNE RÉPONSE</span>` : ""}</div>`).join("")}</div>
+      <div class="options">${q.options.map((o, k) => `<div class="opt ${full && isGood(full, k) ? "correct" : ""}"><b>${LETTERS[k]}.</b><span>${esc(o)}</span>${full && isGood(full, k) ? `<span style="margin-left:auto;font-size:12px;color:var(--sage);font-weight:600">BONNE RÉPONSE</span>` : ""}</div>`).join("")}</div>
       ${full && full.anecdote ? `<p class="notice" style="text-align:left">À lire : ${esc(full.anecdote)}</p>` : ""}
       ${(g.status === "suspense" || g.status === "reveal") ? votesHTML(q) : ""}
       ${g.status === "suspense" && g.ask_couple ? `<p class="notice" style="color:var(--accent)">Les mariés ont la parole sur le grand écran.</p>` : ""}
@@ -962,7 +985,7 @@ function renderQuestions(el){
       <div class="qlist">${list.length ? list.map(q => Admin.editing && Admin.editing.id === q.id ? editorHTML(Admin.editing) : `
         <div class="qrow ${q.id === cur ? "current" : ""}" data-id="${q.id}">
           <span class="n">${qs.indexOf(q) + 1}</span>
-          <span class="t"><b>${esc(q.text)}${q.media_url ? ` <span title="Média joint" style="color:var(--gold)">${q.media_type === "image" ? "📷" : "🎬"}</span>` : ""}</b><span>${esc(goodLabel(q, q.correct))}</span>${q.anecdote ? `<span class="anec">${esc(q.anecdote)}</span>` : ""}</span>
+          <span class="t"><b>${esc(q.text)}${q.media_url ? ` <span title="Média joint" style="color:var(--gold)">${q.media_type === "image" ? "📷" : "🎬"}</span>` : ""}</b><span>${esc(goodLabel(q, q))}${q.multi ? " · plusieurs bonnes réponses" : ""}</span>${q.anecdote ? `<span class="anec">${esc(q.anecdote)}</span>` : ""}</span>
           <span class="ops">
             <button class="icon" data-op="up" title="Monter" ${qs.indexOf(q) === 0 ? "disabled" : ""}>↑</button>
             <button class="icon" data-op="down" title="Descendre" ${qs.indexOf(q) === qs.length - 1 ? "disabled" : ""}>↓</button>
@@ -972,7 +995,15 @@ function renderQuestions(el){
         </div>
         ${Admin.confirm === q.id ? `<div class="inline-confirm">Supprimer cette question ? <button class="btn btn-danger btn-sm" data-op="del-yes" data-id="${q.id}">Oui, supprimer</button><button class="btn btn-ghost btn-sm" data-op="del-no">Annuler</button></div>` : ""}`).join("") : `<div class="empty" style="padding:8px">Aucune question dans ce service.</div>`}</div>`).join("")}
   </section>`;
-  el.querySelector("#add").addEventListener("click", () => { Admin.editing = { id: null, course: "Entrée", text: "", options: ["", "", "", ""], correct: 0, anecdote: "" }; currentView.render(); });
+  el.querySelector("#add").addEventListener("click", () => { Admin.editing = { id: null, course: "Entrée", text: "", options: ["", "", "", ""], correct: 0, anecdote: "", multi: false, corrects: [] }; currentView.render(); });
+  // Éditeur : bascule une bonne réponse / plusieurs bonnes réponses sans perdre la saisie
+  const multiEl = el.querySelector("#e-multi");
+  if (multiEl) multiEl.addEventListener("change", () => {
+    const f = el.querySelector("#editor"), on = multiEl.checked;
+    f.querySelectorAll("input[name=correct]").forEach(i => { if (i.value === "-1") { if (on) i.checked = false; } else i.type = on ? "checkbox" : "radio"; });
+    f.querySelector("#e-all").hidden = on;
+    f.querySelector("#e-opts-title").textContent = on ? "Réponses · cochez toutes les bonnes" : "Réponses · cochez la bonne";
+  });
   el.addEventListener("click", async e => {
     const b = e.target.closest("[data-op]"); if (!b) return;
     const row = b.closest("[data-id]"); const id = b.dataset.id || (row && row.dataset.id); const q = qs.find(x => x.id === id);
@@ -989,7 +1020,7 @@ function renderQuestions(el){
         await rpc("admin_reorder_questions", { p_pin: Admin.pin(), p_ids: ids });
         // le service suit la nouvelle place : on aligne sur le voisin échangé
         const moved = qs.find(x => x.id === id), neighbour = qs.find(x => x.id === ids[k]);
-        if (moved && neighbour && moved.course !== neighbour.course) await rpc("admin_save_question", { p_pin: Admin.pin(), p_id: moved.id, p_position: j + 1, p_course: neighbour.course, p_text: moved.text, p_options: moved.options, p_correct: moved.correct, p_anecdote: moved.anecdote, p_media_url: moved.media_url, p_media_type: moved.media_type });
+        if (moved && neighbour && moved.course !== neighbour.course) await rpc("admin_save_question", { p_pin: Admin.pin(), p_id: moved.id, p_position: j + 1, p_course: neighbour.course, p_text: moved.text, p_options: moved.options, p_correct: moved.correct, p_anecdote: moved.anecdote, p_media_url: moved.media_url, p_media_type: moved.media_type, p_multi: !!moved.multi, p_corrects: moved.multi ? moved.corrects : null });
         await reloadQuestions();
       }
       else if (op === "cancel") { Admin.editing = null; currentView.render(); }
@@ -1015,9 +1046,10 @@ function editorHTML(q){
       <p class="notice" id="e-media-status" hidden></p>
     </div>
     <div class="opts">
-      <p class="eyebrow">Réponses · cochez la bonne</p>
-      ${[0, 1, 2, 3].map(k => [q.options[k] || "", k]).map(([o, k]) => `<div class="optrow"><input type="radio" name="correct" value="${k}" ${k === q.correct ? "checked" : ""} aria-label="Bonne réponse ${LETTERS[k]}"><input id="e-opt-${k}" maxlength="80" ${k < 2 ? "required" : ""} value="${esc(o)}" placeholder="Réponse ${LETTERS[k]}${k < 2 ? "" : " (facultative)"}"></div>`).join("")}
-      <div class="optrow"><input type="radio" name="correct" value="-1" ${q.correct === -1 ? "checked" : ""} aria-label="Toutes les réponses sont bonnes"><span style="opacity:.8">Toutes les réponses sont bonnes (chaque table marque les points)</span></div>
+      <div class="optrow"><input type="checkbox" id="e-multi" ${q.multi ? "checked" : ""} aria-label="Plusieurs bonnes réponses"><span style="opacity:.8">Plusieurs bonnes réponses : les tables cochent tout ce qu'elles pensent bon (points au prorata, bonus de rapidité si tout est juste)</span></div>
+      <p class="eyebrow" id="e-opts-title">${q.multi ? "Réponses · cochez toutes les bonnes" : "Réponses · cochez la bonne"}</p>
+      ${[0, 1, 2, 3].map(k => [q.options[k] || "", k]).map(([o, k]) => `<div class="optrow"><input type="${q.multi ? "checkbox" : "radio"}" name="correct" value="${k}" ${(q.multi ? (q.corrects || []).includes(k) : k === q.correct) ? "checked" : ""} aria-label="Bonne réponse ${LETTERS[k]}"><input id="e-opt-${k}" maxlength="80" ${k < 2 ? "required" : ""} value="${esc(o)}" placeholder="Réponse ${LETTERS[k]}${k < 2 ? "" : " (facultative)"}"></div>`).join("")}
+      <div class="optrow" id="e-all" ${q.multi ? "hidden" : ""}><input type="radio" name="correct" value="-1" ${!q.multi && q.correct === -1 ? "checked" : ""} aria-label="Toutes les réponses sont bonnes"><span style="opacity:.8">Toutes les réponses sont bonnes (chaque table marque les points)</span></div>
     </div>
     <div class="actions"><button class="btn btn-primary" type="button" data-op="save">${q.id ? "Enregistrer" : "Ajouter la question"}</button><button class="btn btn-ghost" type="button" data-op="cancel">Annuler</button></div>
   </form>`;
@@ -1027,12 +1059,15 @@ async function saveEditor(el){
   const text = f.querySelector("#e-text").value.trim();
   const all = [0, 1, 2, 3].map(k => f.querySelector("#e-opt-" + k).value.trim());
   const options = all.filter(Boolean);
+  const multi = !!(f.querySelector("#e-multi") && f.querySelector("#e-multi").checked);
+  const corrects = [...f.querySelectorAll("input[name=correct]:checked")].map(i => +i.value).filter(k => k >= 0);
   const checked = f.querySelector("input[name=correct]:checked");
-  const correct = checked ? +checked.value : NaN;
+  const correct = multi ? (corrects.length ? corrects[0] : NaN) : checked ? +checked.value : NaN;
   const course = f.querySelector("#e-course").value, anecdote = f.querySelector("#e-anecdote").value.trim();
   if (!text || options.length < 2 || Number.isNaN(correct)) { toast("Question, au moins deux réponses et une bonne réponse cochée sont nécessaires.", true); return; }
   if (all.slice(0, options.length).some(o => !o)) { toast("Remplissez les réponses dans l'ordre, sans laisser de trou.", true); return; }
   if (correct >= 0 && !all[correct]) { toast("La bonne réponse cochée est vide.", true); return; }
+  if (multi && corrects.some(k => !all[k])) { toast("Une bonne réponse cochée est vide.", true); return; }
   const id = f.dataset.id || null;
   const existing = Admin.questions.find(q => q.id === id);
   // Média : fichier à déposer, lien YouTube, ou média déjà en place
@@ -1063,7 +1098,7 @@ async function saveEditor(el){
   // Nouvelle question : à la fin de son service
   const lastOfCourse = Admin.questions.filter(q => q.course === course).map(q => q.position).reduce((m, p) => Math.max(m, p), 0);
   const position = existing ? existing.position : (lastOfCourse || Admin.questions.length) + 1;
-  await rpc("admin_save_question", { p_pin: Admin.pin(), p_id: id, p_position: position, p_course: course, p_text: text, p_options: options, p_correct: correct, p_anecdote: anecdote, p_media_url: media_url, p_media_type: media_type });
+  await rpc("admin_save_question", { p_pin: Admin.pin(), p_id: id, p_position: position, p_course: course, p_text: text, p_options: options, p_correct: correct, p_anecdote: anecdote, p_media_url: media_url, p_media_type: media_type, p_multi: multi, p_corrects: multi ? corrects : null });
   Admin.editing = null;
   await reloadQuestions(true);
   toast(id ? "Question enregistrée" : "Question ajoutée");
