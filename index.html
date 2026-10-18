@@ -136,7 +136,7 @@ button.opt:not([disabled]):hover{border-color:var(--accent)}
 .cartons{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;padding:16px}
 .carton{display:grid;justify-items:center;text-align:center;gap:6px;padding:18px 16px;border:1.5px dashed var(--line);border-radius:16px;background:#fff;color:var(--ink)}
 .carton h2{font-family:var(--font-display);font-size:34px;font-weight:500;margin:0}.carton .qr{padding:8px}.carton .hint{font-size:12.5px;color:var(--ink-soft);max-width:260px;margin:0}.carton .link{font-size:10px;color:var(--ink-soft);word-break:break-all;margin:0}
-@media print{@page{size:A4;margin:10mm}.cartons-page{background:#fff}.cartons-tools{display:none}.cartons{grid-template-columns:1fr 1fr;gap:6mm;padding:0}.carton{break-inside:avoid;height:86mm;box-sizing:border-box;border-color:#bbb}}
+@media print{@page{size:A4;margin:10mm}.cartons-page{background:#fff}.cartons-tools{display:none}.cartons{grid-template-columns:1fr 1fr;gap:5mm;padding:0}.carton{break-inside:avoid;height:86mm;box-sizing:border-box;border-color:#bbb;overflow:hidden;gap:3px;padding:10px 12px}.carton .monogram{font-size:26px!important}.carton h2{font-size:28px}.carton .qr{padding:4px}.carton .qr img,.carton .qr canvas{width:36mm!important;height:36mm!important}.carton .hint{font-size:11px}.carton .link{display:none}}
 .url{font-size:12px;word-break:break-all;color:var(--ink-soft);text-align:center}
 .split{display:grid;grid-template-columns:1fr auto;gap:22px;align-items:start}
 @media (max-width:620px){.split{grid-template-columns:1fr}.qr{justify-self:center}}
@@ -906,7 +906,7 @@ const CartonsView = {
         <p class="hint">Scannez avec l'appareil photo du téléphone, un seul par table, donnez-vous un nom et attendez le top départ.</p>
         <p class="link">${esc(playerURL(String(t)))}</p>
       </div>`).join("")}</div>`;
-    Array.from({ length: count }, (_, k) => k + 1).forEach(t => qrInto(document.getElementById("qr-" + t), playerURL(String(t)), 150));
+    Array.from({ length: count }, (_, k) => k + 1).forEach(t => qrInto(document.getElementById("qr-" + t), playerURL(String(t)), 140));
     document.getElementById("print").addEventListener("click", () => window.print());
   },
 };
