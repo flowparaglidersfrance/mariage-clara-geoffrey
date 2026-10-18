@@ -132,6 +132,11 @@ button.opt:not([disabled]):hover{border-color:var(--accent)}
 .screen .verdict strong{font-size:clamp(22px,3vw,32px)} .screen .verdict p{font-size:clamp(16px,2vw,22px)}
 @media (max-width:620px){.screen .options{grid-template-columns:1fr}}
 .qr{display:grid;place-items:center;gap:8px;padding:14px;background:#fff;border-radius:14px;align-self:center}
+.cartons-page{background:#fff}.cartons-tools{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:16px;border-bottom:1px solid var(--line)}
+.cartons{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;padding:16px}
+.carton{display:grid;justify-items:center;text-align:center;gap:6px;padding:18px 16px;border:1.5px dashed var(--line);border-radius:16px;background:#fff;color:var(--ink)}
+.carton h2{font-family:var(--font-display);font-size:34px;font-weight:500;margin:0}.carton .qr{padding:8px}.carton .hint{font-size:12.5px;color:var(--ink-soft);max-width:260px;margin:0}.carton .link{font-size:10px;color:var(--ink-soft);word-break:break-all;margin:0}
+@media print{@page{size:A4;margin:10mm}.cartons-page{background:#fff}.cartons-tools{display:none}.cartons{grid-template-columns:1fr 1fr;gap:6mm;padding:0}.carton{break-inside:avoid;height:86mm;box-sizing:border-box;border-color:#bbb}}
 .url{font-size:12px;word-break:break-all;color:var(--ink-soft);text-align:center}
 .split{display:grid;grid-template-columns:1fr auto;gap:22px;align-items:start}
 @media (max-width:620px){.split{grid-template-columns:1fr}.qr{justify-self:center}}
@@ -247,7 +252,9 @@ function humanError(e){
   if (/plus ouverte/.test(m)) return "La question vient d'être fermée.";
   if (/Temps écoulé/.test(m)) return "Trop tard, le temps est écoulé.";
   if (/en pause/.test(m)) return "La partie est en pause.";
+  if (/teams_table_no_unique/.test(m)) return "Ce numéro de table est déjà inscrit. Voyez avec l'animateur.";
   if (/duplicate|23505/.test(m)) return "Déjà répondu.";
+  if (/manque des tables/.test(m)) return m;
   if (/Failed to fetch|NetworkError|network/i.test(m)) return "Pas de réseau. Réessayez.";
   return m || "Une erreur est survenue.";
 }
@@ -317,6 +324,7 @@ function navigate(){
   if (a === "connexion") return mount(LoginView);
   if (a === "animateur") { if (!Admin.pin()) { location.replace("#/connexion"); return; } return mount(AdminView(b || "partie")); }
   if (a === "ecran") return mount(ScreenView);
+  if (a === "cartons") return mount(CartonsView);
   return mount(PlayerView);
 }
 window.addEventListener("hashchange", navigate);
@@ -410,9 +418,10 @@ function pauseHTML(team){
 }
 function courseTitle(q){ return q ? `${q.course} · ${COURSE_SUB[q.course] || ""}` : ""; }
 function afterCourse(q){ return q ? ` après ${q.course === "Entrée" ? "l'" : "le "}${q.course.toLowerCase()}` : ""; }
-function qrInto(el, text){ try { if (window.QRCode && el) new QRCode(el, { text, width: 180, height: 180, colorDark: "#2A1F2D", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.M }); } catch (e) {} }
+function qrInto(el, text, size){ try { if (window.QRCode && el) new QRCode(el, { text, width: size || 180, height: size || 180, colorDark: "#2A1F2D", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.M }); } catch (e) {} }
 const baseURL = () => location.origin + location.pathname;
-const playerURL = () => baseURL() + "#/jouer";
+const playerURL = (t) => baseURL() + "#/jouer" + (t ? "/" + encodeURIComponent(t) : "");
+const tableFromRoute = () => { const t = decodeURIComponent(route()[1] || "").trim(); return /^[0-9A-Za-z]{1,12}$/.test(t) ? t : null; };
 
 /* ============================================================
    ESPACE JOUEUR
@@ -447,22 +456,37 @@ const PlayerView = {
   },
 
   join(app, g){
-    const n = Live.board.length;
+    const n = Live.board.length, fixed = tableFromRoute();
+    const taken = fixed ? Live.board.find(r => String(r.table_no) === fixed) : null;
+    if (taken) {
+      app.innerHTML = `
+      <section class="card menu-card fade">
+        <div class="monogram">C<small>&amp;</small>G</div>
+        <p class="eyebrow" style="text-align:center">Table ${esc(fixed)}</p>
+        <h1 class="title">Cette table est déjà inscrite</h1>
+        <p class="lede">Sous le nom « ${esc(taken.name)} ». Si c'est bien vous (autre téléphone, page rechargée), reprenez la main. Sinon, voyez avec l'animateur.</p>
+        <div class="actions"><button class="btn btn-primary" type="button" id="adopt">C'est nous, reprendre la table</button></div>
+      </section>
+      <footer><a href="#/connexion">Espace animateur</a></footer>`;
+      document.getElementById("adopt").addEventListener("click", () => { ls.set("cg-team", { id: taken.id, name: taken.name, table_no: taken.table_no }); ls.set("cg-answered", {}); Player.reveal = {}; this.render(); });
+      return;
+    }
     app.innerHTML = `
     <section class="card menu-card fade">
       <div class="monogram">C<small>&amp;</small>G</div>
       <p class="eyebrow" style="text-align:center">Le quiz des tables</p>
       <h1 class="title">Quelle table connaît le mieux ${esc(COUPLE.her)} et ${esc(COUPLE.him)} ?</h1>
+      ${fixed ? `<p class="eyebrow" style="text-align:center;color:var(--accent);font-size:16px">Table ${esc(fixed)}</p>` : ""}
       <p class="lede">Un téléphone par table. L'animateur lance les questions, vous avez quelques dizaines de secondes pour vous mettre d'accord.</p>
       ${g.status === "finished" ? `<p class="notice">La partie est terminée. Vous pouvez tout de même consulter le classement.</p>` : g.status !== "lobby" ? `<p class="notice">La partie a déjà commencé, vous pouvez la rejoindre en cours de route.</p>` : ""}
       <form id="join">
         <div class="row">
           <label>Nom de la table<input id="name" required maxlength="40" placeholder="Les Cousins du Nord" autocomplete="off"></label>
-          <label>Numéro<input id="table" maxlength="12" placeholder="7" inputmode="numeric"></label>
+          <label>Numéro<input id="table" maxlength="12" placeholder="7" inputmode="numeric" ${fixed ? `value="${esc(fixed)}" readonly style="background:var(--ground)"` : ""}></label>
         </div>
         <button class="btn btn-primary" type="submit" id="submit">Passer à table</button>
       </form>
-      <p class="lede" style="font-size:13px">${n} table${n > 1 ? "s" : ""} déjà inscrite${n > 1 ? "s" : ""}</p>
+      <p class="lede" style="font-size:13px">${n} table${n > 1 ? "s" : ""} déjà inscrite${n > 1 ? "s" : ""}${g.expected_tables ? ` sur ${g.expected_tables}` : ""}</p>
     </section>
     <footer><a href="#/connexion">Espace animateur</a></footer>`;
     document.getElementById("join").addEventListener("submit", async e => {
@@ -487,7 +511,7 @@ const PlayerView = {
       <h2 class="course">À table !</h2>
       <p class="lede">Vous êtes inscrits. L'animateur va lancer la première question, gardez ce téléphone à portée de main.</p>
       <div class="pulse"></div>
-      <p class="lede" style="font-size:13px">${n} table${n > 1 ? "s" : ""} prête${n > 1 ? "s" : ""}</p>
+      <p class="lede" style="font-size:13px">${n} table${n > 1 ? "s" : ""} prête${n > 1 ? "s" : ""}${Live.game && Live.game.expected_tables ? ` sur ${Live.game.expected_tables}` : ""}</p>
     </section>
     <footer><button type="button" id="leave">Changer de table</button></footer>`;
     document.getElementById("leave").addEventListener("click", () => { ls.del("cg-team"); this.render(); });
@@ -623,7 +647,7 @@ const ScreenView = {
             <div class="monogram" style="text-align:left;font-size:60px">C<small>&amp;</small>G</div>
             <h1 class="title" style="text-align:left;font-size:40px">Le quiz des tables</h1>
             <p class="lede left" style="font-size:20px">Un téléphone par table. Scannez le code, donnez un nom à votre table et attendez le top départ.</p>
-            <p class="eyebrow">${n} table${n > 1 ? "s" : ""} prête${n > 1 ? "s" : ""}</p>
+            <p class="eyebrow">${n} table${n > 1 ? "s" : ""} prête${n > 1 ? "s" : ""}${g.expected_tables ? ` sur ${g.expected_tables}` : ""}</p>
             <div class="chips">${Live.board.map(r => `<span class="chip">${esc(r.name)}${r.table_no ? ` <span style="color:var(--ink-soft)">· ${esc(r.table_no)}</span>` : ""}</span>`).join("") || `<span class="empty" style="padding:0">Personne pour l'instant…</span>`}</div>
           </div>
           <div class="qr" id="qr"></div>
@@ -791,7 +815,10 @@ function renderPartie(el){
   const full = q ? Admin.questions.find(x => x.id === q.id) : null;
   let main = "", secondary = "";
   if (!qs.length) main = `<p class="notice err">Aucune question. Ajoutez-en dans l'onglet Questions.</p>`;
-  else if (g.status === "lobby") main = `<button class="btn btn-primary" data-act="start">Lancer la question 1</button>`;
+  else if (g.status === "lobby") {
+    const missing = g.require_all && n < (g.expected_tables || 0);
+    main = `<button class="btn btn-primary" data-act="start" ${missing ? "disabled" : ""}>Lancer la question 1${g.expected_tables ? ` (${n}/${g.expected_tables} tables)` : ""}</button>`;
+  }
   else if (g.status === "question") { main = `<button class="btn btn-primary" data-act="close">Clore les réponses</button>`; secondary = `<button class="btn btn-ghost" data-act="restart">Relancer le chrono</button>`; }
   else if (g.status === "suspense") { main = `<button class="btn btn-primary" data-act="reveal">Révéler la réponse</button>`; secondary = g.ask_couple ? `<button class="btn btn-ghost" data-act="couple-off">Reprendre la main</button>` : `<button class="btn btn-ghost" data-act="couple">Demander aux mariés</button>`; }
   else if (g.status === "reveal") {
@@ -823,7 +850,13 @@ function renderPartie(el){
       ${(g.status === "suspense" || g.status === "reveal") ? votesHTML(q) : ""}
       ${g.status === "suspense" && g.ask_couple ? `<p class="notice" style="color:var(--accent)">Les mariés ont la parole sur le grand écran.</p>` : ""}
       ${full && full.media_url ? `<p class="notice" style="text-align:left">Média à la révélation : ${full.media_type === "image" ? (mediaUrls(full.media_url).length > 1 ? `${mediaUrls(full.media_url).length} photos en diaporama` : "photo") : "vidéo"}${full.media_type === "video" ? " (lancer la lecture sur le grand écran si elle ne démarre pas seule)" : ""}</p>` : ""}
-    ` : g.status === "lobby" ? `<div><h2 style="font-size:24px">Les tables s'inscrivent</h2><p style="color:var(--ink-soft);margin-top:6px">Projetez le grand écran pour afficher le QR code. Première question : « ${esc(qs[0] ? qs[0].text : "")} ».</p></div>`
+    ` : g.status === "lobby" ? `<div><h2 style="font-size:24px">Les tables s'inscrivent</h2><p style="color:var(--ink-soft);margin-top:6px">Chaque table scanne le QR code de son carton. Première question : « ${esc(qs[0] ? qs[0].text : "")} ».</p>
+      <div class="chips" style="margin-top:10px">${Array.from({ length: g.expected_tables || 0 }, (_, k) => String(k + 1)).map(t => { const r = Live.board.find(x => String(x.table_no) === t); return `<span class="chip" style="${r ? "border-color:var(--sage);background:var(--sage-soft)" : "opacity:.5"}">${t}${r ? ` · ${esc(r.name)}` : ""}</span>`; }).join("")}${Live.board.filter(x => !x.table_no || +x.table_no > (g.expected_tables || 0)).map(r => `<span class="chip" style="border-color:var(--gold)">${r.table_no ? `${esc(r.table_no)} · ` : ""}${esc(r.name)}</span>`).join("")}</div>
+      <div class="two" style="margin-top:14px">
+        <label>Tables attendues<input id="expected" type="number" min="1" max="30" value="${g.expected_tables || 10}"></label>
+        <label style="flex-direction:row;align-items:center;gap:10px;align-self:end;padding-bottom:10px"><input type="checkbox" id="require" ${g.require_all ? "checked" : ""} style="width:auto"> Attendre toutes les tables avant de lancer</label>
+      </div>
+      ${g.require_all && n < (g.expected_tables || 0) ? `<p class="notice">Lancement bloqué tant que les ${g.expected_tables} tables ne sont pas inscrites. Décochez la case pour passer outre.</p>` : ""}</div>`
       : `<div><h2 style="font-size:24px">Partie terminée</h2><p style="color:var(--ink-soft);margin-top:6px">Le podium est affiché sur le grand écran.</p></div>`}
     <div class="actions">${main}${secondary}</div>
     <div class="topbar" style="flex-wrap:wrap">
@@ -836,6 +869,9 @@ function renderPartie(el){
   ${g.status === "question" && !g.paused ? `<div class="topbar" style="justify-content:center">${timerHTML(g, true)}</div>` : ""}`;
 
   el.querySelector("#seconds").addEventListener("change", async e => { await setGame(g.status, g.current_question_id, +e.target.value); toast("Temps par question : " + e.target.value + " s"); });
+  const exp = el.querySelector("#expected"), req = el.querySelector("#require");
+  if (exp) exp.addEventListener("change", async e => { const v = Math.min(30, Math.max(1, +e.target.value || 10)); try { await rpc("admin_set_tables", { p_pin: Admin.pin(), p_expected: v, p_require: null }); await Live.loadGame(); toast(`${v} tables attendues`); } catch (err) { toast(humanError(err), true); } });
+  if (req) req.addEventListener("change", async e => { try { await rpc("admin_set_tables", { p_pin: Admin.pin(), p_expected: null, p_require: e.target.checked }); await Live.loadGame(); toast(e.target.checked ? "Lancement verrouillé jusqu'à l'inscription de toutes les tables" : "Verrou levé : lancement possible à tout moment"); } catch (err) { toast(humanError(err), true); } });
   el.addEventListener("click", async e => {
     const b = e.target.closest("[data-act]"); if (!b) return;
     const act = b.dataset.act; b.disabled = true;
@@ -851,6 +887,29 @@ function renderPartie(el){
     else if (act === "pause" || act === "resume") await setPause(act === "pause");
   });
 }
+
+/* ============================================================
+   Cartons de table à imprimer : #/cartons/12
+   ============================================================ */
+const CartonsView = {
+  bodyClass: "cartons-page",
+  render(){
+    const count = Math.min(40, Math.max(1, parseInt(route()[1], 10) || 12));
+    root.innerHTML = `
+    <div class="cartons-tools"><button class="btn btn-primary" type="button" id="print">Imprimer (ou enregistrer en PDF)</button><span style="color:var(--ink-soft);font-size:14px">A4, 6 cartons par page. Changez le nombre dans l'adresse : #/cartons/${count}</span></div>
+    <div class="cartons">${Array.from({ length: count }, (_, k) => k + 1).map(t => `
+      <div class="carton">
+        <div class="monogram" style="font-size:34px">C<small>&amp;</small>G</div>
+        <p class="eyebrow">Le quiz des tables</p>
+        <h2>Table ${t}</h2>
+        <div class="qr" id="qr-${t}"></div>
+        <p class="hint">Scannez avec l'appareil photo du téléphone, un seul par table, donnez-vous un nom et attendez le top départ.</p>
+        <p class="link">${esc(playerURL(String(t)))}</p>
+      </div>`).join("")}</div>`;
+    Array.from({ length: count }, (_, k) => k + 1).forEach(t => qrInto(document.getElementById("qr-" + t), playerURL(String(t)), 150));
+    document.getElementById("print").addEventListener("click", () => window.print());
+  },
+};
 
 /* ---- Onglet Questions ---- */
 function renderQuestions(el){
@@ -1030,7 +1089,9 @@ function renderReglages(el){
   </section>
   <section class="card fade">
     <h2 style="font-size:22px">Liens utiles</h2>
-    <p style="color:var(--ink-soft);font-size:14px">Lien des tables, à transformer en QR code pour les cartons :</p>
+    <p style="color:var(--ink-soft);font-size:14px">Cartons à imprimer, un QR code par table (12 cartons, les deux derniers en réserve) :</p>
+    <p class="url" style="text-align:left"><a href="#/cartons/12" target="_blank" rel="noopener">${esc(baseURL() + "#/cartons/12")}</a></p>
+    <p style="color:var(--ink-soft);font-size:14px">Lien générique des tables (le numéro est alors saisi à la main) :</p>
     <p class="url" style="text-align:left">${esc(playerURL())}</p>
     <p style="color:var(--ink-soft);font-size:14px">Grand écran, à ouvrir sur l'ordinateur branché au vidéoprojecteur :</p>
     <p class="url" style="text-align:left">${esc(baseURL() + "#/ecran")}</p>

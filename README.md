@@ -8,13 +8,18 @@ Jeu de mariage : un téléphone par table, 20 questions sur les mariés en trois
 
 ## Les trois espaces
 
-- `#/jouer` : les tables (un téléphone par table). Inscription, attente, questions, révélation, classement.
+- `#/jouer` : les tables (un téléphone par table). Inscription, attente, questions, révélation, classement. `#/jouer/7` fixe le numéro de table (c'est le lien de chaque carton QR) ; une table déjà inscrite peut être reprise depuis un autre téléphone.
+- `#/cartons/12` : cartons de table à imprimer (un QR code par table, A4, 6 par page).
 - `#/animateur` : l'animateur, protégé par un code PIN (`#/connexion`). Onglets Partie (pilotage), Questions (éditeur), Tables, Réglages (code, remise à zéro).
 - `#/ecran` : grand écran à projeter, suit l'état de la partie (QR code, question, réponse, classement, podium).
 
 ## Déroulé
 
 L'animateur lance chaque question ; les tables ont le temps imparti (30 à 90 s) pour répondre ; il révèle la réponse et l'anecdote ; à la fin de chaque service (Entrée, Plat, Dessert) il affiche le classement. Points : 100 par bonne réponse + jusqu'à 50 de bonus de rapidité, calculés côté serveur.
+
+## Lancement
+
+Le lancement de la première question est bloqué tant que les tables attendues (10 par défaut, réglable dans l'onglet Partie) ne sont pas toutes inscrites. L'animateur peut lever ce verrou d'une case à cocher.
 
 ## Remise à zéro
 
