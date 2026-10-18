@@ -66,6 +66,8 @@ textarea{min-height:70px;resize:vertical}
 .media img,.media video,.media iframe{max-width:100%;max-height:60vh;border-radius:14px;border:1px solid var(--line);background:#000}
 .media iframe{width:100%;aspect-ratio:16/9;max-height:none}
 .screen .media img,.screen .media video{max-height:55vh}
+.slides{display:grid;place-items:center}.slides img{grid-area:1/1;opacity:0;transition:opacity .9s ease}.slides img.on{opacity:1}
+.slides .dots{grid-area:1/1;align-self:end;margin-bottom:10px;display:flex;gap:6px}.slides .dots i{width:8px;height:8px;border-radius:50%;background:#fff6;display:block}.slides .dots i.on{background:#fff}
 .votes{display:grid;gap:8px}
 .vote{display:grid;grid-template-columns:22px 1fr auto;gap:10px;align-items:center}
 .vote b{font-family:var(--font-display);font-style:italic;font-weight:400;color:var(--ink-soft)}
@@ -358,8 +360,20 @@ function mediaHTML(r){
   if (!r || !r.media_url) return "";
   if (r.media_type === "youtube") { const id = youtubeId(r.media_url); return id ? `<div class="media"><iframe src="https://www.youtube.com/embed/${id}?autoplay=1&rel=0" allow="autoplay; encrypted-media" allowfullscreen title="Vidéo"></iframe></div>` : ""; }
   if (r.media_type === "video") return `<div class="media"><video src="${esc(r.media_url)}" controls autoplay playsinline></video></div>`;
-  return `<div class="media"><img src="${esc(r.media_url)}" alt=""></div>`;
+  const urls = mediaUrls(r.media_url);
+  if (urls.length > 1) return `<div class="media"><div class="slides">${urls.map((u, k) => `<img src="${esc(u)}" alt="" class="${k === 0 ? "on" : ""}">`).join("")}<div class="dots">${urls.map((u, k) => `<i class="${k === 0 ? "on" : ""}"></i>`).join("")}</div></div></div>`;
+  return `<div class="media"><img src="${esc(urls[0])}" alt=""></div>`;
 }
+// Plusieurs photos : une adresse par ligne, diaporama à la révélation (4 s par photo)
+function mediaUrls(s){ return String(s || "").split("\n").map(u => u.trim()).filter(Boolean); }
+setInterval(() => {
+  document.querySelectorAll(".slides").forEach(s => {
+    const imgs = [...s.querySelectorAll("img")], dots = [...s.querySelectorAll(".dots i")];
+    if (imgs.length < 2) return;
+    const i = Math.max(0, imgs.findIndex(x => x.classList.contains("on"))), n = (i + 1) % imgs.length;
+    imgs.forEach((x, k) => x.classList.toggle("on", k === n)); dots.forEach((x, k) => x.classList.toggle("on", k === n));
+  });
+}, 4000);
 function youtubeId(url){ const m = String(url).match(/(?:youtu\.be\/|v=|\/shorts\/|\/embed\/)([A-Za-z0-9_-]{11})/); return m ? m[1] : null; }
 function votesHTML(q){
   const counts = Live.choices[q.id] || {}; const total = Object.values(counts).reduce((a, b) => a + b, 0) || 1;
@@ -806,7 +820,7 @@ function renderPartie(el){
       ${full && full.anecdote ? `<p class="notice" style="text-align:left">À lire : ${esc(full.anecdote)}</p>` : ""}
       ${(g.status === "suspense" || g.status === "reveal") ? votesHTML(q) : ""}
       ${g.status === "suspense" && g.ask_couple ? `<p class="notice" style="color:var(--accent)">Les mariés ont la parole sur le grand écran.</p>` : ""}
-      ${full && full.media_url ? `<p class="notice" style="text-align:left">Média à la révélation : ${full.media_type === "image" ? "photo" : "vidéo"}${full.media_type === "video" ? " (lancer la lecture sur le grand écran si elle ne démarre pas seule)" : ""}</p>` : ""}
+      ${full && full.media_url ? `<p class="notice" style="text-align:left">Média à la révélation : ${full.media_type === "image" ? (mediaUrls(full.media_url).length > 1 ? `${mediaUrls(full.media_url).length} photos en diaporama` : "photo") : "vidéo"}${full.media_type === "video" ? " (lancer la lecture sur le grand écran si elle ne démarre pas seule)" : ""}</p>` : ""}
     ` : g.status === "lobby" ? `<div><h2 style="font-size:24px">Les tables s'inscrivent</h2><p style="color:var(--ink-soft);margin-top:6px">Projetez le grand écran pour afficher le QR code. Première question : « ${esc(qs[0] ? qs[0].text : "")} ».</p></div>`
       : `<div><h2 style="font-size:24px">Partie terminée</h2><p style="color:var(--ink-soft);margin-top:6px">Le podium est affiché sur le grand écran.</p></div>`}
     <div class="actions">${main}${secondary}</div>
@@ -898,16 +912,16 @@ function editorHTML(q){
     <label>Question<textarea id="e-text" maxlength="300" required>${esc(q.text)}</textarea></label>
     <div class="mediabox">
       <p class="eyebrow">Photo ou vidéo montrée avec la réponse (facultatif)</p>
-      ${q.media_url ? `<div class="preview">${q.media_type === "image" ? `<img src="${esc(q.media_url)}" alt="">` : q.media_type === "video" ? `<video src="${esc(q.media_url)}" muted></video>` : "▶"}<span>${q.media_type === "youtube" ? "Vidéo YouTube" : q.media_type === "video" ? "Vidéo" : "Photo"} prête</span><button class="btn btn-ghost btn-sm" type="button" data-op="media-clear">Retirer</button></div>` : `
+      ${q.media_url ? `<div class="preview">${q.media_type === "image" ? `<img src="${esc(mediaUrls(q.media_url)[0])}" alt="">` : q.media_type === "video" ? `<video src="${esc(q.media_url)}" muted></video>` : "▶"}<span>${q.media_type === "youtube" ? "Vidéo YouTube" : q.media_type === "video" ? "Vidéo" : mediaUrls(q.media_url).length > 1 ? `${mediaUrls(q.media_url).length} photos` : "Photo"} prête</span><button class="btn btn-ghost btn-sm" type="button" data-op="media-clear">Retirer</button></div>` : `
       <div class="two">
-        <label>Fichier (photo ou vidéo, 50 Mo max)<input type="file" id="e-file" accept="image/*,video/*"></label>
+        <label>Photos (plusieurs possibles, diaporama) ou une vidéo, 50 Mo max par fichier<input type="file" id="e-file" accept="image/*,video/*" multiple></label>
         <label>ou lien YouTube<input id="e-yt" placeholder="https://youtu.be/…" inputmode="url"></label>
       </div>`}
       <p class="notice" id="e-media-status" hidden></p>
     </div>
     <div class="opts">
       <p class="eyebrow">Réponses · cochez la bonne</p>
-      ${q.options.map((o, k) => `<div class="optrow"><input type="radio" name="correct" value="${k}" ${k === q.correct ? "checked" : ""} aria-label="Bonne réponse ${LETTERS[k]}"><input id="e-opt-${k}" maxlength="80" required value="${esc(o)}" placeholder="Réponse ${LETTERS[k]}"></div>`).join("")}
+      ${[0, 1, 2, 3].map(k => [q.options[k] || "", k]).map(([o, k]) => `<div class="optrow"><input type="radio" name="correct" value="${k}" ${k === q.correct ? "checked" : ""} aria-label="Bonne réponse ${LETTERS[k]}"><input id="e-opt-${k}" maxlength="80" ${k < 2 ? "required" : ""} value="${esc(o)}" placeholder="Réponse ${LETTERS[k]}${k < 2 ? "" : " (facultative)"}"></div>`).join("")}
     </div>
     <div class="actions"><button class="btn btn-primary" type="button" data-op="save">${q.id ? "Enregistrer" : "Ajouter la question"}</button><button class="btn btn-ghost" type="button" data-op="cancel">Annuler</button></div>
   </form>`;
@@ -915,11 +929,14 @@ function editorHTML(q){
 async function saveEditor(el){
   const f = el.querySelector("#editor"); if (!f) return;
   const text = f.querySelector("#e-text").value.trim();
-  const options = [0, 1, 2, 3].map(k => f.querySelector("#e-opt-" + k).value.trim());
+  const all = [0, 1, 2, 3].map(k => f.querySelector("#e-opt-" + k).value.trim());
+  const options = all.filter(Boolean);
   const checked = f.querySelector("input[name=correct]:checked");
   const correct = checked ? +checked.value : NaN;
   const course = f.querySelector("#e-course").value, anecdote = f.querySelector("#e-anecdote").value.trim();
-  if (!text || options.some(o => !o) || Number.isNaN(correct)) { toast("Question, quatre réponses et une bonne réponse cochée sont nécessaires.", true); return; }
+  if (!text || options.length < 2 || Number.isNaN(correct)) { toast("Question, au moins deux réponses et une bonne réponse cochée sont nécessaires.", true); return; }
+  if (all.slice(0, options.length).some(o => !o)) { toast("Remplissez les réponses dans l'ordre, sans laisser de trou.", true); return; }
+  if (!all[correct]) { toast("La bonne réponse cochée est vide.", true); return; }
   const id = f.dataset.id || null;
   const existing = Admin.questions.find(q => q.id === id);
   // Média : fichier à déposer, lien YouTube, ou média déjà en place
@@ -927,16 +944,22 @@ async function saveEditor(el){
   const fileEl = f.querySelector("#e-file"), ytEl = f.querySelector("#e-yt");
   const status = f.querySelector("#e-media-status");
   if (fileEl && fileEl.files && fileEl.files[0]) {
-    const file = fileEl.files[0];
-    if (file.size > 50 * 1024 * 1024) { toast("Fichier trop lourd : 50 Mo maximum.", true); return; }
-    status.hidden = false; status.textContent = "Envoi du fichier…";
-    const ext = (file.name.split(".").pop() || "bin").toLowerCase().replace(/[^a-z0-9]/g, "");
-    const path = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-    const { error } = await sb.storage.from("media").upload(path, file, { contentType: file.type, upsert: false });
-    if (error) { status.textContent = "Envoi impossible : " + error.message; toast("Envoi du fichier impossible.", true); return; }
-    media_url = sb.storage.from("media").getPublicUrl(path).data.publicUrl;
-    media_type = file.type.startsWith("video/") ? "video" : "image";
-    status.textContent = "Fichier envoyé.";
+    const files = [...fileEl.files];
+    if (files.some(file => file.size > 50 * 1024 * 1024)) { toast("Fichier trop lourd : 50 Mo maximum.", true); return; }
+    const isVideo = files[0].type.startsWith("video/");
+    if (files.length > 1 && files.some(file => file.type.startsWith("video/"))) { toast("Une seule vidéo par question, ou plusieurs photos.", true); return; }
+    const urls = [];
+    for (const [k, file] of files.entries()) {
+      status.hidden = false; status.textContent = files.length > 1 ? `Envoi de la photo ${k + 1} sur ${files.length}…` : "Envoi du fichier…";
+      const ext = (file.name.split(".").pop() || "bin").toLowerCase().replace(/[^a-z0-9]/g, "");
+      const path = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const { error } = await sb.storage.from("media").upload(path, file, { contentType: file.type, upsert: false });
+      if (error) { status.textContent = "Envoi impossible : " + error.message; toast("Envoi du fichier impossible.", true); return; }
+      urls.push(sb.storage.from("media").getPublicUrl(path).data.publicUrl);
+    }
+    media_url = urls.join("\n");
+    media_type = isVideo ? "video" : "image";
+    status.textContent = files.length > 1 ? `${files.length} photos envoyées.` : "Fichier envoyé.";
   } else if (ytEl && ytEl.value.trim()) {
     if (!youtubeId(ytEl.value.trim())) { toast("Lien YouTube non reconnu.", true); return; }
     media_url = ytEl.value.trim(); media_type = "youtube";

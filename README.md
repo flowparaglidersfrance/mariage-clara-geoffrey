@@ -1,9 +1,10 @@
 # Clara & Geoffrey, le quiz des tables
 
-Jeu de mariage : un téléphone par table, 15 questions sur les mariés en trois services, classement des tables en direct.
+Jeu de mariage : un téléphone par table, 20 questions sur les mariés en trois services (7 à l'entrée, 7 au plat, 6 au dessert), de 2 à 4 réponses chacune, classement des tables en direct.
 
 - `index.html` : le jeu complet (hébergé sur GitHub Pages). Les questions et la configuration Supabase sont en tête du script.
 - `supabase/migrations/` : le schéma de la base (équipes, réponses, droits anonymes, temps réel).
+- Photos des questions : bucket Storage public `media`, dossier `questions/` (`qNN-k.jpg`, 1600 px max). Plusieurs photos par question = une adresse par ligne dans `media_url`, diaporama à la révélation. Sources : dossier « Mariage Chouchou & Geo » sur le Bureau (tableur de Camille + photos par dossier).
 
 ## Les trois espaces
 
