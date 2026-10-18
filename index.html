@@ -365,6 +365,8 @@ function mediaHTML(r){
   return `<div class="media"><img src="${esc(urls[0])}" alt=""></div>`;
 }
 // Plusieurs photos : une adresse par ligne, diaporama à la révélation (4 s par photo)
+function isGood(correct, k){ return correct === -1 || k === correct; }
+function goodLabel(q, correct){ return correct === -1 ? "Toutes les réponses sont bonnes !" : q.options[correct]; }
 function mediaUrls(s){ return String(s || "").split("\n").map(u => u.trim()).filter(Boolean); }
 setInterval(() => {
   document.querySelectorAll(".slides").forEach(s => {
@@ -547,7 +549,7 @@ const PlayerView = {
       <div><p class="eyebrow">${esc(courseTitle(q))}</p><p class="eyebrow" style="color:var(--accent)">Question ${Live.idx() + 1} sur ${Live.questions.length}</p></div>
       <h2 class="qtext">${esc(q.text)}</h2>
       <div class="options">
-        ${q.options.map((o, k) => `<div class="opt ${r && k === r.correct ? "correct" : mine === k ? "wrong" : "dim"}"><b>${LETTERS[k]}.</b><span>${esc(o)}</span></div>`).join("")}
+        ${q.options.map((o, k) => `<div class="opt ${r && isGood(r.correct, k) ? "correct" : mine === k ? "wrong" : "dim"}"><b>${LETTERS[k]}.</b><span>${esc(o)}</span></div>`).join("")}
       </div>
       ${r ? `<div class="verdict ${r.my_correct ? "" : "bad"} fade">
         <strong>${r.my_choice === null ? "Pas de réponse de votre table." : r.my_correct ? `Exact, <span class="points">+${r.my_points}</span>` : "Raté."}</strong>
@@ -668,8 +670,8 @@ const ScreenView = {
       <section class="card menu-card fade">
         <div><p class="eyebrow">${esc(courseTitle(q))}</p><h2 style="font-size:22px;color:var(--accent)">Question ${Live.idx() + 1} sur ${Live.questions.length}</h2></div>
         <h1 class="qtext">${esc(q.text)}</h1>
-        <div class="options">${q.options.map((o, k) => `<div class="opt ${r ? (k === r.correct ? "correct" : "dim") : ""}"><b>${LETTERS[k]}.</b><span>${esc(o)}</span></div>`).join("")}</div>
-        ${r ? `<div class="verdict fade"><strong>La bonne réponse : ${esc(q.options[r.correct])}</strong>${r.anecdote ? `<p>${esc(r.anecdote)}</p>` : ""}</div>${mediaHTML(r)}` : ""}
+        <div class="options">${q.options.map((o, k) => `<div class="opt ${r ? (isGood(r.correct, k) ? "correct" : "dim") : ""}"><b>${LETTERS[k]}.</b><span>${esc(o)}</span></div>`).join("")}</div>
+        ${r ? `<div class="verdict fade"><strong>${r.correct === -1 ? "Toutes les réponses sont bonnes !" : `La bonne réponse : ${esc(q.options[r.correct])}`}</strong>${r.anecdote ? `<p>${esc(r.anecdote)}</p>` : ""}</div>${mediaHTML(r)}` : ""}
       </section>`;
       return;
     }
@@ -816,7 +818,7 @@ function renderPartie(el){
     </div>
     ${q ? `
       <div><p class="eyebrow">${esc(courseTitle(q))} · question ${i + 1} sur ${qs.length}</p><h2 style="font-size:24px;margin-top:6px">${esc(q.text)}</h2></div>
-      <div class="options">${q.options.map((o, k) => `<div class="opt ${full && k === full.correct ? "correct" : ""}"><b>${LETTERS[k]}.</b><span>${esc(o)}</span>${full && k === full.correct ? `<span style="margin-left:auto;font-size:12px;color:var(--sage);font-weight:600">BONNE RÉPONSE</span>` : ""}</div>`).join("")}</div>
+      <div class="options">${q.options.map((o, k) => `<div class="opt ${full && isGood(full.correct, k) ? "correct" : ""}"><b>${LETTERS[k]}.</b><span>${esc(o)}</span>${full && isGood(full.correct, k) ? `<span style="margin-left:auto;font-size:12px;color:var(--sage);font-weight:600">BONNE RÉPONSE</span>` : ""}</div>`).join("")}</div>
       ${full && full.anecdote ? `<p class="notice" style="text-align:left">À lire : ${esc(full.anecdote)}</p>` : ""}
       ${(g.status === "suspense" || g.status === "reveal") ? votesHTML(q) : ""}
       ${g.status === "suspense" && g.ask_couple ? `<p class="notice" style="color:var(--accent)">Les mariés ont la parole sur le grand écran.</p>` : ""}
@@ -867,7 +869,7 @@ function renderQuestions(el){
       <div class="qlist">${list.length ? list.map(q => Admin.editing && Admin.editing.id === q.id ? editorHTML(Admin.editing) : `
         <div class="qrow ${q.id === cur ? "current" : ""}" data-id="${q.id}">
           <span class="n">${qs.indexOf(q) + 1}</span>
-          <span class="t"><b>${esc(q.text)}${q.media_url ? ` <span title="Média joint" style="color:var(--gold)">${q.media_type === "image" ? "📷" : "🎬"}</span>` : ""}</b><span>${esc(q.options[q.correct])}</span>${q.anecdote ? `<span class="anec">${esc(q.anecdote)}</span>` : ""}</span>
+          <span class="t"><b>${esc(q.text)}${q.media_url ? ` <span title="Média joint" style="color:var(--gold)">${q.media_type === "image" ? "📷" : "🎬"}</span>` : ""}</b><span>${esc(goodLabel(q, q.correct))}</span>${q.anecdote ? `<span class="anec">${esc(q.anecdote)}</span>` : ""}</span>
           <span class="ops">
             <button class="icon" data-op="up" title="Monter" ${qs.indexOf(q) === 0 ? "disabled" : ""}>↑</button>
             <button class="icon" data-op="down" title="Descendre" ${qs.indexOf(q) === qs.length - 1 ? "disabled" : ""}>↓</button>
@@ -922,6 +924,7 @@ function editorHTML(q){
     <div class="opts">
       <p class="eyebrow">Réponses · cochez la bonne</p>
       ${[0, 1, 2, 3].map(k => [q.options[k] || "", k]).map(([o, k]) => `<div class="optrow"><input type="radio" name="correct" value="${k}" ${k === q.correct ? "checked" : ""} aria-label="Bonne réponse ${LETTERS[k]}"><input id="e-opt-${k}" maxlength="80" ${k < 2 ? "required" : ""} value="${esc(o)}" placeholder="Réponse ${LETTERS[k]}${k < 2 ? "" : " (facultative)"}"></div>`).join("")}
+      <div class="optrow"><input type="radio" name="correct" value="-1" ${q.correct === -1 ? "checked" : ""} aria-label="Toutes les réponses sont bonnes"><span style="opacity:.8">Toutes les réponses sont bonnes (chaque table marque les points)</span></div>
     </div>
     <div class="actions"><button class="btn btn-primary" type="button" data-op="save">${q.id ? "Enregistrer" : "Ajouter la question"}</button><button class="btn btn-ghost" type="button" data-op="cancel">Annuler</button></div>
   </form>`;
@@ -936,7 +939,7 @@ async function saveEditor(el){
   const course = f.querySelector("#e-course").value, anecdote = f.querySelector("#e-anecdote").value.trim();
   if (!text || options.length < 2 || Number.isNaN(correct)) { toast("Question, au moins deux réponses et une bonne réponse cochée sont nécessaires.", true); return; }
   if (all.slice(0, options.length).some(o => !o)) { toast("Remplissez les réponses dans l'ordre, sans laisser de trou.", true); return; }
-  if (!all[correct]) { toast("La bonne réponse cochée est vide.", true); return; }
+  if (correct >= 0 && !all[correct]) { toast("La bonne réponse cochée est vide.", true); return; }
   const id = f.dataset.id || null;
   const existing = Admin.questions.find(q => q.id === id);
   // Média : fichier à déposer, lien YouTube, ou média déjà en place
