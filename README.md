@@ -8,8 +8,8 @@ Jeu de mariage : un téléphone par table, 20 questions sur les mariés en trois
 
 ## Les trois espaces
 
-- `#/jouer` : les tables (un téléphone par table). Inscription, attente, questions, révélation, classement. `#/jouer/7` fixe le numéro de table (c'est le lien de chaque carton QR) ; une table déjà inscrite peut être reprise depuis un autre téléphone.
-- `#/cartons/12` : cartons de table à imprimer (un QR code par table, A4, 6 par page).
+- `#/jouer` : les tables (un téléphone par table). Inscription, attente, questions, révélation, classement. `#/jouer/7` est le lien du carton de la table 7 : la table prévue (nom dans l'onglet Tables) s'inscrit d'un bouton, un seul téléphone par table. Une deuxième inscription est refusée, sauf si l'animateur rouvre la table 10 minutes (« Autre téléphone », points conservés).
+- `#/cartons` : cartons à imprimer, un par table prévue avec son nom (A4, 6 par page) ; `#/cartons/16` force un nombre.
 - `#/animateur` : l'animateur, protégé par un code PIN (`#/connexion`). Onglets Partie (pilotage), Questions (éditeur), Tables, Réglages (code, remise à zéro).
 - `#/ecran` : grand écran à projeter, suit l'état de la partie (QR code, question, réponse, classement, podium).
 
@@ -19,7 +19,7 @@ L'animateur lance chaque question ; les tables ont le temps imparti (30 à 90 s)
 
 ## Lancement
 
-Le lancement de la première question est bloqué tant que les tables attendues (10 par défaut, réglable dans l'onglet Partie) ne sont pas toutes inscrites. L'animateur peut lever ce verrou d'une case à cocher.
+Les tables prévues (nom + numéro) se saisissent dans l'onglet Tables ; le nombre attendu suit. Le lancement de la première question est bloqué tant que les tables attendues (réglable dans l'onglet Partie) ne sont pas toutes inscrites. L'animateur peut lever ce verrou d'une case à cocher.
 
 ## Remise à zéro
 

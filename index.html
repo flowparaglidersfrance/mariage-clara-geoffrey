@@ -252,7 +252,8 @@ function humanError(e){
   if (/plus ouverte/.test(m)) return "La question vient d'être fermée.";
   if (/Temps écoulé/.test(m)) return "Trop tard, le temps est écoulé.";
   if (/en pause/.test(m)) return "La partie est en pause.";
-  if (/teams_table_no_unique/.test(m)) return "Ce numéro de table est déjà inscrit. Voyez avec l'animateur.";
+  if (/teams_table_no_unique/.test(m)) return "Cette table est déjà inscrite sur un autre téléphone. Voyez avec l'animateur.";
+  if (/Table inconnue/.test(m)) return "Ce carton ne correspond à aucune table prévue. Voyez avec l'animateur.";
   if (/duplicate|23505/.test(m)) return "Déjà répondu.";
   if (/manque des tables/.test(m)) return m;
   if (/Failed to fetch|NetworkError|network/i.test(m)) return "Pas de réseau. Réessayez.";
@@ -273,7 +274,9 @@ function remaining(game){
 
 /* ---- Données partagées : état de la partie, questions publiques, classement ---- */
 const Live = {
-  game: null, questions: [], board: [], counts: {}, choices: {}, connected: false,
+  game: null, questions: [], board: [], counts: {}, choices: {}, connected: false, tables: [],
+  async loadTables(){ const { data } = await sb.from("tables").select("*").order("no"); if (data) { this.tables = data; this.emit(); } },
+  tableByNo(no){ return this.tables.find(t => String(t.no) === String(no)) || null; },
   listeners: new Set(), channel: null, pollTimer: null,
   on(fn){ this.listeners.add(fn); return () => this.listeners.delete(fn); },
   emit(){ for (const fn of this.listeners) { try { fn(); } catch (e) { console.error(e); } } },
@@ -291,13 +294,15 @@ const Live = {
     if (JSON.stringify([this.board, this.counts, this.choices]) !== prev) this.emit();
   },
   async start(){
-    await Promise.all([this.loadGame(), this.loadQuestions(), this.loadBoard(), syncClock()]);
+    await Promise.all([this.loadGame(), this.loadQuestions(), this.loadBoard(), this.loadTables(), syncClock()]);
     this.channel = sb.channel("live")
       .on("postgres_changes", { event: "*", schema: "public", table: "game" }, p => { if (p.new && p.new.id) { this.game = p.new; this.emit(); this.loadBoard(); } })
       .on("postgres_changes", { event: "*", schema: "public", table: "teams" }, () => this.loadBoard())
+      .on("postgres_changes", { event: "*", schema: "public", table: "tables" }, () => this.loadTables())
       .subscribe(status => { this.connected = status === "SUBSCRIBED"; this.emit(); });
     // Filet de sécurité si le wifi de la salle coupe le temps réel
     this.pollTimer = setInterval(() => { this.loadGame(); this.loadBoard(); }, 4000);
+    setInterval(() => this.loadTables(), 30000);
   },
   current(){ return this.game && this.game.current_question_id ? this.questions.find(q => q.id === this.game.current_question_id) : null; },
   idx(){ const q = this.current(); return q ? this.questions.indexOf(q) : -1; },
@@ -458,17 +463,44 @@ const PlayerView = {
   join(app, g){
     const n = Live.board.length, fixed = tableFromRoute();
     const taken = fixed ? Live.board.find(r => String(r.table_no) === fixed) : null;
+    const planned = fixed ? Live.tableByNo(fixed) : null;
+    const label = planned ? `${esc(planned.name)} · table ${esc(fixed)}` : `Table ${esc(fixed || "")}`;
     if (taken) {
+      const reopened = taken.reopen_until && new Date(taken.reopen_until) > new Date();
       app.innerHTML = `
       <section class="card menu-card fade">
         <div class="monogram">C<small>&amp;</small>G</div>
-        <p class="eyebrow" style="text-align:center">Table ${esc(fixed)}</p>
-        <h1 class="title">Cette table est déjà inscrite</h1>
-        <p class="lede">Sous le nom « ${esc(taken.name)} ». Si c'est bien vous (autre téléphone, page rechargée), reprenez la main. Sinon, voyez avec l'animateur.</p>
-        <div class="actions"><button class="btn btn-primary" type="button" id="adopt">C'est nous, reprendre la table</button></div>
+        <p class="eyebrow" style="text-align:center">${label}</p>
+        <h1 class="title">${reopened ? "Reprendre cette table" : "Cette table est déjà inscrite"}</h1>
+        <p class="lede">${reopened ? `L'animateur a autorisé un nouveau téléphone pour « ${esc(taken.name)} ». Les points sont conservés.` : `Sous le nom « ${esc(taken.name)} », sur un autre téléphone. Un seul téléphone par table : c'est lui qui joue. Pour en changer, voyez avec l'animateur.`}</p>
+        ${reopened ? `<div class="actions"><button class="btn btn-primary" type="button" id="adopt">C'est nous, reprendre la table</button></div>` : ""}
       </section>
       <footer><a href="#/connexion">Espace animateur</a></footer>`;
-      document.getElementById("adopt").addEventListener("click", () => { ls.set("cg-team", { id: taken.id, name: taken.name, table_no: taken.table_no }); ls.set("cg-answered", {}); Player.reveal = {}; this.render(); });
+      const adopt = document.getElementById("adopt");
+      if (adopt) adopt.addEventListener("click", () => { ls.set("cg-team", { id: taken.id, name: taken.name, table_no: taken.table_no }); ls.set("cg-answered", {}); Player.reveal = {}; this.render(); });
+      return;
+    }
+    if (planned) {
+      app.innerHTML = `
+      <section class="card menu-card fade">
+        <div class="monogram">C<small>&amp;</small>G</div>
+        <p class="eyebrow" style="text-align:center">Le quiz des tables</p>
+        <h1 class="title">${esc(planned.name)}</h1>
+        <p class="eyebrow" style="text-align:center;color:var(--accent);font-size:16px">Table ${esc(fixed)}</p>
+        <p class="lede">Un seul téléphone par table : celui-ci répondra pour toute la table. L'animateur lance les questions, vous aurez quelques dizaines de secondes pour vous mettre d'accord.</p>
+        ${g.status === "finished" ? `<p class="notice">La partie est terminée.</p>` : g.status !== "lobby" ? `<p class="notice">La partie a déjà commencé, vous la rejoignez en cours de route.</p>` : ""}
+        <div class="actions"><button class="btn btn-primary" type="button" id="submit">C'est nous, on joue !</button></div>
+        <p class="lede" style="font-size:13px">${n} table${n > 1 ? "s" : ""} déjà inscrite${n > 1 ? "s" : ""}${g.expected_tables ? ` sur ${g.expected_tables}` : ""}</p>
+      </section>
+      <footer><a href="#/connexion">Espace animateur</a></footer>`;
+      document.getElementById("submit").addEventListener("click", async () => {
+        const btn = document.getElementById("submit"); btn.disabled = true; btn.textContent = "Un instant…";
+        try {
+          const rows = await rpc("join_table", { p_no: parseInt(fixed, 10) });
+          const data = Array.isArray(rows) ? rows[0] : rows;
+          ls.set("cg-team", data); ls.set("cg-answered", {}); Player.reveal = {}; Live.loadBoard(); this.render();
+        } catch (err) { toast(humanError(err), true); btn.disabled = false; btn.textContent = "C'est nous, on joue !"; }
+      });
       return;
     }
     app.innerHTML = `
@@ -648,7 +680,7 @@ const ScreenView = {
             <h1 class="title" style="text-align:left;font-size:40px">Le quiz des tables</h1>
             <p class="lede left" style="font-size:20px">Un téléphone par table. Scannez le code, donnez un nom à votre table et attendez le top départ.</p>
             <p class="eyebrow">${n} table${n > 1 ? "s" : ""} prête${n > 1 ? "s" : ""}${g.expected_tables ? ` sur ${g.expected_tables}` : ""}</p>
-            <div class="chips">${Live.board.map(r => `<span class="chip">${esc(r.name)}${r.table_no ? ` <span style="color:var(--ink-soft)">· ${esc(r.table_no)}</span>` : ""}</span>`).join("") || `<span class="empty" style="padding:0">Personne pour l'instant…</span>`}</div>
+            <div class="chips">${Live.tables.length ? Live.tables.map(t => { const r = Live.board.find(x => String(x.table_no) === String(t.no)); return `<span class="chip" style="${r ? "border-color:var(--sage);background:var(--sage-soft)" : "opacity:.45"}">${esc(t.name)} <span style="color:var(--ink-soft)">· ${t.no}</span></span>`; }).join("") : Live.board.map(r => `<span class="chip">${esc(r.name)}${r.table_no ? ` <span style="color:var(--ink-soft)">· ${esc(r.table_no)}</span>` : ""}</span>`).join("") || `<span class="empty" style="padding:0">Personne pour l'instant…</span>`}</div>
           </div>
           <div class="qr" id="qr"></div>
         </div>
@@ -851,9 +883,9 @@ function renderPartie(el){
       ${g.status === "suspense" && g.ask_couple ? `<p class="notice" style="color:var(--accent)">Les mariés ont la parole sur le grand écran.</p>` : ""}
       ${full && full.media_url ? `<p class="notice" style="text-align:left">Média à la révélation : ${full.media_type === "image" ? (mediaUrls(full.media_url).length > 1 ? `${mediaUrls(full.media_url).length} photos en diaporama` : "photo") : "vidéo"}${full.media_type === "video" ? " (lancer la lecture sur le grand écran si elle ne démarre pas seule)" : ""}</p>` : ""}
     ` : g.status === "lobby" ? `<div><h2 style="font-size:24px">Les tables s'inscrivent</h2><p style="color:var(--ink-soft);margin-top:6px">Chaque table scanne le QR code de son carton. Première question : « ${esc(qs[0] ? qs[0].text : "")} ».</p>
-      <div class="chips" style="margin-top:10px">${Array.from({ length: g.expected_tables || 0 }, (_, k) => String(k + 1)).map(t => { const r = Live.board.find(x => String(x.table_no) === t); return `<span class="chip" style="${r ? "border-color:var(--sage);background:var(--sage-soft)" : "opacity:.5"}">${t}${r ? ` · ${esc(r.name)}` : ""}</span>`; }).join("")}${Live.board.filter(x => !x.table_no || +x.table_no > (g.expected_tables || 0)).map(r => `<span class="chip" style="border-color:var(--gold)">${r.table_no ? `${esc(r.table_no)} · ` : ""}${esc(r.name)}</span>`).join("")}</div>
+      <div class="chips" style="margin-top:10px">${(Live.tables.length ? Live.tables.map(t => String(t.no)) : Array.from({ length: g.expected_tables || 0 }, (_, k) => String(k + 1))).map(t => { const r = Live.board.find(x => String(x.table_no) === t); const pl = Live.tableByNo(t); return `<span class="chip" style="${r ? "border-color:var(--sage);background:var(--sage-soft)" : "opacity:.5"}">${t}${pl ? ` · ${esc(pl.name)}` : r ? ` · ${esc(r.name)}` : ""}${r ? " ✓" : ""}</span>`; }).join("")}${Live.board.filter(x => !x.table_no || +x.table_no > (g.expected_tables || 0)).map(r => `<span class="chip" style="border-color:var(--gold)">${r.table_no ? `${esc(r.table_no)} · ` : ""}${esc(r.name)}</span>`).join("")}</div>
       <div class="two" style="margin-top:14px">
-        <label>Tables attendues<input id="expected" type="number" min="1" max="30" value="${g.expected_tables || 10}"></label>
+        <label>Tables attendues${Live.tables.length ? ` (${Live.tables.length} prévues dans l'onglet Tables)` : ""}<input id="expected" type="number" min="1" max="30" value="${g.expected_tables || 10}"></label>
         <label style="flex-direction:row;align-items:center;gap:10px;align-self:end;padding-bottom:10px"><input type="checkbox" id="require" ${g.require_all ? "checked" : ""} style="width:auto"> Attendre toutes les tables avant de lancer</label>
       </div>
       ${g.require_all && n < (g.expected_tables || 0) ? `<p class="notice">Lancement bloqué tant que les ${g.expected_tables} tables ne sont pas inscrites. Décochez la case pour passer outre.</p>` : ""}</div>`
@@ -894,16 +926,18 @@ function renderPartie(el){
 const CartonsView = {
   bodyClass: "cartons-page",
   render(){
-    const count = Math.min(40, Math.max(1, parseInt(route()[1], 10) || 12));
+    const count = Math.min(40, Math.max(1, parseInt(route()[1], 10) || Live.tables.length || 12));
+    const nameOf = t => { const pl = Live.tableByNo(t); return pl ? pl.name : null; };
     root.innerHTML = `
-    <div class="cartons-tools"><button class="btn btn-primary" type="button" id="print">Imprimer (ou enregistrer en PDF)</button><span style="color:var(--ink-soft);font-size:14px">A4, 6 cartons par page. Changez le nombre dans l'adresse : #/cartons/${count}</span></div>
+    <div class="cartons-tools"><button class="btn btn-primary" type="button" id="print">Imprimer (ou enregistrer en PDF)</button><span style="color:var(--ink-soft);font-size:14px">A4, 6 cartons par page. ${Live.tables.length ? "Noms et nombre : onglet Tables de l'espace animateur." : `Changez le nombre dans l'adresse : #/cartons/${count}`}</span></div>
     <div class="cartons">${Array.from({ length: count }, (_, k) => k + 1).map(t => `
       <div class="carton">
         <div class="monogram" style="font-size:34px">C<small>&amp;</small>G</div>
         <p class="eyebrow">Le quiz des tables</p>
-        <h2>Table ${t}</h2>
+        <h2>${nameOf(t) ? esc(nameOf(t)) : `Table ${t}`}</h2>
+        ${nameOf(t) ? `<p class="eyebrow" style="margin-top:-4px">Table ${t}</p>` : ""}
         <div class="qr" id="qr-${t}"></div>
-        <p class="hint">Scannez avec l'appareil photo du téléphone, un seul par table, donnez-vous un nom et attendez le top départ.</p>
+        <p class="hint">Un seul téléphone par table : scannez avec l'appareil photo, appuyez sur « C'est nous » et attendez le top départ.</p>
         <p class="link">${esc(playerURL(String(t)))}</p>
       </div>`).join("")}</div>`;
     Array.from({ length: count }, (_, k) => k + 1).forEach(t => qrInto(document.getElementById("qr-" + t), playerURL(String(t)), 140));
@@ -1048,18 +1082,41 @@ async function reloadQuestions(renumber){
 
 /* ---- Onglet Tables ---- */
 function renderTables(el){
-  const rows = Live.board;
+  const rows = Live.board, planned = Live.tables;
+  const now = Date.now();
+  const rowHTML = (r, k, pl) => `
+      <div class="qrow" data-id="${r.id}">
+        <span class="n">${pl ? pl.no : k + 1}</span>
+        <span class="t"><b>${esc(r.name)}${r.table_no && !pl ? ` <span style="color:var(--ink-soft);font-weight:400">· table ${esc(r.table_no)}</span>` : ""}</b><span style="color:var(--ink-soft);font-weight:400">${r.score} points · ${r.answered} réponse${r.answered > 1 ? "s" : ""}${r.reopen_until && new Date(r.reopen_until).getTime() > now ? ` · <span style="color:var(--gold)">nouveau téléphone autorisé ${Math.ceil((new Date(r.reopen_until).getTime() - now) / 60000)} min</span>` : ""}</span></span>
+        <span class="ops"><button class="btn btn-ghost btn-sm" data-op="reopen" title="Autoriser un autre téléphone à reprendre cette table pendant 10 minutes">Autre téléphone</button><button class="icon" data-op="del" title="Retirer">✕</button></span>
+      </div>
+      ${Admin.confirm === r.id ? `<div class="inline-confirm">Retirer « ${esc(r.name)} » et ses réponses ? <button class="btn btn-danger btn-sm" data-op="del-yes" data-id="${r.id}">Oui, retirer</button><button class="btn btn-ghost btn-sm" data-op="del-no">Annuler</button></div>` : ""}`;
+  const extra = rows.filter(r => !planned.some(t => String(t.no) === String(r.table_no)));
   el.innerHTML = `
   <section class="card fade">
-    <div class="topbar"><div><h2 style="font-size:22px">Tables inscrites</h2><p style="color:var(--ink-soft);font-size:14px">${rows.length} table${rows.length > 1 ? "s" : ""} · classement en direct</p></div><span class="live ${Live.connected ? "" : "off"}"><i></i>en direct</span></div>
-    <div class="qlist">${rows.length ? rows.map((r, k) => `
-      <div class="qrow" data-id="${r.id}">
-        <span class="n">${k + 1}</span>
-        <span class="t"><b>${esc(r.name)}${r.table_no ? ` <span style="color:var(--ink-soft);font-weight:400">· table ${esc(r.table_no)}</span>` : ""}</b><span style="color:var(--ink-soft);font-weight:400">${r.score} points · ${r.answered} réponse${r.answered > 1 ? "s" : ""}</span></span>
-        <span class="ops"><button class="icon" data-op="del" title="Retirer">✕</button></span>
-      </div>
-      ${Admin.confirm === r.id ? `<div class="inline-confirm">Retirer « ${esc(r.name)} » et ses réponses ? <button class="btn btn-danger btn-sm" data-op="del-yes" data-id="${r.id}">Oui, retirer</button><button class="btn btn-ghost btn-sm" data-op="del-no">Annuler</button></div>` : ""}`).join("") : `<div class="empty">Aucune table pour l'instant. Le QR code est sur le grand écran.</div>`}</div>
+    <div class="topbar"><div><h2 style="font-size:22px">Tables</h2><p style="color:var(--ink-soft);font-size:14px">${rows.length} inscrite${rows.length > 1 ? "s" : ""}${planned.length ? ` sur ${planned.length} prévue${planned.length > 1 ? "s" : ""}` : ""} · un seul téléphone par table</p></div><span class="live ${Live.connected ? "" : "off"}"><i></i>en direct</span></div>
+    <div class="qlist">${planned.length ? planned.map(t => { const r = rows.find(x => String(x.table_no) === String(t.no)); return r ? rowHTML(r, 0, t) : `
+      <div class="qrow" style="opacity:.6"><span class="n">${t.no}</span><span class="t"><b>${esc(t.name)}</b><span style="color:var(--ink-soft);font-weight:400">pas encore inscrite · carton « Table ${t.no} »</span></span><span></span></div>`; }).join("") : ""}
+    ${extra.map((r, k) => rowHTML(r, k, null)).join("")}
+    ${!planned.length && !rows.length ? `<div class="empty">Aucune table pour l'instant.</div>` : ""}</div>
+    <p class="notice" style="text-align:left">« Autre téléphone » : si le téléphone d'une table est perdu ou déchargé, autorise pendant 10 minutes un nouveau téléphone à rescanner le carton et reprendre la table, points conservés.</p>
+  </section>
+  <section class="card fade">
+    <h2 style="font-size:22px">Tables prévues</h2>
+    <p style="color:var(--ink-soft);font-size:14px">Un nom par ligne, dans l'ordre des cartons (ligne 1 = carton « Table 1 »). Le nombre de tables attendues suit automatiquement. À faire avant d'imprimer les cartons.</p>
+    <form id="tablesform">
+      <label>Noms des tables<textarea id="tablenames" rows="${Math.max(8, planned.length + 1)}" placeholder="Les Cousins\nLes Copains du lycée\n…">${esc(planned.map(t => t.name).join("\n"))}</textarea></label>
+      <div class="actions"><button class="btn btn-primary" type="submit">Enregistrer les tables</button><a class="btn btn-ghost" href="#/cartons" target="_blank" rel="noopener">Voir les cartons à imprimer</a></div>
+    </form>
   </section>`;
+  el.querySelector("#tablesform").addEventListener("submit", async e => {
+    e.preventDefault();
+    const names = el.querySelector("#tablenames").value.split("\n").map(x => x.trim()).filter(Boolean);
+    if (!names.length) { toast("Indiquez au moins une table.", true); return; }
+    if (names.some(x => x.length > 40)) { toast("40 caractères maximum par nom.", true); return; }
+    try { await rpc("admin_set_table_list", { p_pin: Admin.pin(), p_names: names }); await Live.loadTables(); await Live.loadGame(); toast(`${names.length} tables prévues`); }
+    catch (err) { toast(humanError(err), true); }
+  });
   el.addEventListener("click", async e => {
     const b = e.target.closest("[data-op]"); if (!b) return;
     const id = b.dataset.id || b.closest("[data-id]").dataset.id;
@@ -1067,6 +1124,7 @@ function renderTables(el){
       if (b.dataset.op === "del") { Admin.confirm = id; currentView.render(); }
       else if (b.dataset.op === "del-no") { Admin.confirm = null; currentView.render(); }
       else if (b.dataset.op === "del-yes") { await rpc("admin_delete_team", { p_pin: Admin.pin(), p_id: id }); Admin.confirm = null; await Live.loadBoard(); toast("Table retirée"); }
+      else if (b.dataset.op === "reopen") { await rpc("admin_reopen_team", { p_pin: Admin.pin(), p_id: id }); await Live.loadBoard(); toast("Un nouveau téléphone peut rescanner le carton pendant 10 minutes"); }
     } catch (err) { toast(humanError(err), true); }
   });
 }
@@ -1089,8 +1147,8 @@ function renderReglages(el){
   </section>
   <section class="card fade">
     <h2 style="font-size:22px">Liens utiles</h2>
-    <p style="color:var(--ink-soft);font-size:14px">Cartons à imprimer, un QR code par table (12 cartons, les deux derniers en réserve) :</p>
-    <p class="url" style="text-align:left"><a href="#/cartons/12" target="_blank" rel="noopener">${esc(baseURL() + "#/cartons/12")}</a></p>
+    <p style="color:var(--ink-soft);font-size:14px">Cartons à imprimer, un QR code par table prévue (noms dans l'onglet Tables) :</p>
+    <p class="url" style="text-align:left"><a href="#/cartons" target="_blank" rel="noopener">${esc(baseURL() + "#/cartons")}</a></p>
     <p style="color:var(--ink-soft);font-size:14px">Lien générique des tables (le numéro est alors saisi à la main) :</p>
     <p class="url" style="text-align:left">${esc(playerURL())}</p>
     <p style="color:var(--ink-soft);font-size:14px">Grand écran, à ouvrir sur l'ordinateur branché au vidéoprojecteur :</p>
