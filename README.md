@@ -9,7 +9,7 @@ Jeu de mariage : un téléphone par table, 20 questions sur les mariés en trois
 ## Les trois espaces
 
 - `#/jouer` : les tables (un téléphone par table). Inscription, attente, questions, révélation, classement. `#/jouer/7` est le lien du carton de la table 7 : la table prévue (nom dans l'onglet Tables) s'inscrit d'un bouton, un seul téléphone par table. Une deuxième inscription est refusée, sauf si l'animateur rouvre la table 10 minutes (« Autre téléphone », points conservés).
-- `#/cartons` : cartons à imprimer, un par table prévue avec son nom (A4, 6 par page) ; `#/cartons/16` force un nombre.
+- `#/cartons` : cartons à imprimer, un par table prévue avec son nom (A4, 6 par page) ; `#/cartons/16` force un nombre ; `#/cartons/8/4` ajoute 4 cartons « Table de secours » (tables 9 à 12, la table saisit son nom au scan).
 - `#/animateur` : l'animateur, protégé par un code PIN (`#/connexion`). Onglets Partie (pilotage), Questions (éditeur), Tables, Réglages (code, remise à zéro).
 - `#/ecran` : grand écran à projeter, suit l'état de la partie (QR code, question, réponse, classement, podium).
 

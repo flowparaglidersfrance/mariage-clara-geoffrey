@@ -944,15 +944,16 @@ function renderPartie(el){
 }
 
 /* ============================================================
-   Cartons de table à imprimer : #/cartons/12
+   Cartons de table à imprimer : #/cartons/12 (ou #/cartons/8/4 avec 4 cartons de secours)
    ============================================================ */
 const CartonsView = {
   bodyClass: "cartons-page",
   render(){
     const count = Math.min(40, Math.max(1, parseInt(route()[1], 10) || Live.tables.length || 12));
+    const spare = Math.min(12, Math.max(0, parseInt(route()[2], 10) || 0)); // #/cartons/8/4 → 4 cartons de secours (tables 9 à 12)
     const nameOf = t => { const pl = Live.tableByNo(t); return pl ? pl.name : null; };
     root.innerHTML = `
-    <div class="cartons-tools"><button class="btn btn-primary" type="button" id="print">Imprimer (ou enregistrer en PDF)</button><span style="color:var(--ink-soft);font-size:14px">A4, 6 cartons par page. ${Live.tables.length ? "Noms et nombre : onglet Tables de l'espace animateur." : `Changez le nombre dans l'adresse : #/cartons/${count}`}</span></div>
+    <div class="cartons-tools"><button class="btn btn-primary" type="button" id="print">Imprimer (ou enregistrer en PDF)</button><span style="color:var(--ink-soft);font-size:14px">A4, 6 cartons par page. ${Live.tables.length ? "Noms et nombre : onglet Tables de l'espace animateur." : `Changez le nombre dans l'adresse : #/cartons/${count}`} Cartons de secours (tables sans nom prévu) : ajoutez leur nombre à l'adresse, par exemple #/cartons/${count}/4.</span></div>
     <div class="cartons">${Array.from({ length: count }, (_, k) => k + 1).map(t => `
       <div class="carton">
         <div class="monogram" style="font-size:34px">C<small>&amp;</small>G</div>
@@ -962,8 +963,17 @@ const CartonsView = {
         <div class="qr" id="qr-${t}"></div>
         <p class="hint">Un seul téléphone par table : scannez avec l'appareil photo, appuyez sur « C'est nous » et attendez le top départ.</p>
         <p class="link">${esc(playerURL(String(t)))}</p>
+      </div>`).join("")}${Array.from({ length: spare }, (_, k) => count + k + 1).map(t => `
+      <div class="carton">
+        <div class="monogram" style="font-size:34px">C<small>&amp;</small>G</div>
+        <p class="eyebrow">Le quiz des tables</p>
+        <h2>Table de secours</h2>
+        <p class="eyebrow" style="margin-top:-4px">Table ${t}</p>
+        <div class="qr" id="qr-${t}"></div>
+        <p class="hint">Un seul téléphone par table : scannez avec l'appareil photo, donnez un nom à votre table, puis « Passer à table » et attendez le top départ.</p>
+        <p class="link">${esc(playerURL(String(t)))}</p>
       </div>`).join("")}</div>`;
-    Array.from({ length: count }, (_, k) => k + 1).forEach(t => qrInto(document.getElementById("qr-" + t), playerURL(String(t)), 140));
+    Array.from({ length: count + spare }, (_, k) => k + 1).forEach(t => qrInto(document.getElementById("qr-" + t), playerURL(String(t)), 140));
     document.getElementById("print").addEventListener("click", () => window.print());
   },
 };
