@@ -132,7 +132,8 @@ button.opt:not([disabled]):hover{border-color:var(--accent)}
 .screen .verdict strong{font-size:clamp(22px,3vw,32px)} .screen .verdict p{font-size:clamp(16px,2vw,22px)}
 @media (max-width:620px){.screen .options{grid-template-columns:1fr}}
 .qr{display:grid;place-items:center;gap:8px;padding:14px;background:#fff;border-radius:14px;align-self:center}
-.curtain{position:fixed;inset:0;background:#000;cursor:none}body.screen:has(.curtain){background:#000}
+.curtain{position:fixed;inset:0;background:#000;cursor:none;display:flex;align-items:flex-end;justify-content:center;padding:0 8vw 7vh}body.screen:has(.curtain){background:#000}
+.curtain-line{margin:0;max-width:1100px;text-align:center;color:#8a8089;font-size:clamp(20px,2.6vw,36px);line-height:1.35;font-style:italic;opacity:.9;transition:opacity .9s ease}.curtain-line.out{opacity:0}
 .cartons-page{background:#fff}.cartons-tools{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:16px;border-bottom:1px solid var(--line)}
 .cartons{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;padding:16px}
 .carton{display:grid;justify-items:center;text-align:center;gap:6px;padding:18px 16px;border:1.5px dashed var(--line);border-radius:16px;background:#fff;color:var(--ink)}
@@ -673,6 +674,18 @@ const PlayerView = {
    GRAND ÉCRAN
    ============================================================ */
 const Screen = { reveal: {}, revealing: null };
+const CURTAIN_LINES = [
+  "Le quiz des tables arrive bientôt. En attendant, mangez, c'est bon.",
+  "Rechargez vos téléphones. Pas seulement vos verres.",
+  "Vingt questions, aucune excuse : vous les connaissez depuis des années.",
+  "Les tables qui trichent seront déplacées à côté de la sono.",
+  "Choisissez bien votre meneur de table. Pas celui qui a le plus bu.",
+  "Le jury délibère. Le jury, c'est Clara.",
+  "Cassandre connaît déjà toutes les réponses. Elle ne dira rien.",
+  "Un seul téléphone par table. Et pas celui de Geoffrey.",
+  "Révision express : ils s'appellent Clara et Geoffrey. Ça, c'est cadeau.",
+  "Scannez le carton de votre table, et préparez vos souvenirs.",
+];
 const ScreenView = {
   bodyClass: "screen",
   render(){
@@ -681,7 +694,16 @@ const ScreenView = {
     const app = document.getElementById("app");
     if (!g) { app.innerHTML = `<section class="card menu-card"><div class="empty">Connexion…</div></section>`; return; }
     const n = Live.board.length;
-    if (g.curtain) { root.innerHTML = `<div class="curtain" title="Écran en attente"></div>`; return; }
+    if (g.curtain) {
+      const k = Math.floor(serverNow() / 12000) % CURTAIN_LINES.length;
+      root.innerHTML = `<div class="curtain"><p class="curtain-line" data-k="${k}">${esc(CURTAIN_LINES[k])}</p></div>`;
+      if (!ScreenView._curtainTimer) ScreenView._curtainTimer = setInterval(() => {
+        const el = document.querySelector(".curtain-line"); if (!el) { clearInterval(ScreenView._curtainTimer); ScreenView._curtainTimer = null; return; }
+        const nk = Math.floor(serverNow() / 12000) % CURTAIN_LINES.length;
+        if (String(nk) !== el.dataset.k) { el.classList.add("out"); setTimeout(() => { el.textContent = CURTAIN_LINES[nk]; el.dataset.k = nk; el.classList.remove("out"); }, 900); }
+      }, 1000);
+      return;
+    }
     if (g.paused) { app.innerHTML = pauseHTML(null); return; }
     if (g.status === "finished") {
       const top = Live.board.slice(0, 3), rest = Live.board.slice(3);
