@@ -417,6 +417,16 @@ function pauseJoke(){
   const t = Live.game && Live.game.paused_at ? Math.floor(new Date(Live.game.paused_at).getTime() / 1000) : 0;
   return PAUSE_JOKES[t % PAUSE_JOKES.length];
 }
+function curtainHTML(team){
+  return `<section class="card menu-card wait fade">
+    ${team ? `<p class="eyebrow">${esc(team.name)}${team.table_no ? ` · table ${esc(team.table_no)}` : ""}</p>` : ""}
+    <div class="monogram">C<small>&amp;</small>G</div>
+    <h2 class="course">Pas si vite !</h2>
+    <p class="lede">Le quiz n'a pas encore commencé. Gardez cette page ouverte : elle s'activera toute seule quand l'animateur donnera le top.</p>
+    <p class="lede" style="font-size:13px">En attendant, profitez du repas. Et non, il n'y a rien à voir ici.</p>
+    <div class="pulse"></div>
+  </section>`;
+}
 function pauseHTML(team){
   return `<section class="card menu-card wait fade">
     ${team ? `<p class="eyebrow">${esc(team.name)}${team.table_no ? ` · table ${esc(team.table_no)}` : ""}</p>` : ""}
@@ -449,6 +459,7 @@ const PlayerView = {
     root.innerHTML = `<div class="page"><div class="app" id="app"></div></div>`;
     const app = document.getElementById("app");
     if (!g) { app.innerHTML = `<section class="card menu-card"><div class="empty">Connexion à la partie…</div></section>`; return; }
+    if (g.curtain) { app.innerHTML = curtainHTML(team); return; }
     if (!team) return this.join(app, g);
     const q = Live.current();
     if (g.paused) { app.innerHTML = pauseHTML(team); return; }
@@ -684,7 +695,7 @@ const CURTAIN_LINES = [
   "Cassandre connaît déjà toutes les réponses. Elle ne dira rien.",
   "Un seul téléphone par table. Et pas celui de Geoffrey.",
   "Révision express : ils s'appellent Clara et Geoffrey. Ça, c'est cadeau.",
-  "Scannez le carton de votre table, et préparez vos souvenirs.",
+  "Inutile de flasher le carton tout de suite : le téléphone attend le top départ, comme vous.",
 ];
 const ScreenView = {
   bodyClass: "screen",
