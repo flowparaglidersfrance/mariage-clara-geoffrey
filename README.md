@@ -15,6 +15,8 @@ Jeu de mariage : un téléphone par table, 20 questions sur les mariés en trois
 
 ## Déroulé
 
+Grand écran : tant que le « rideau » est baissé (`game.curtain`, vrai par défaut et après remise à zéro), `#/ecran` affiche un écran entièrement noir. Dans l'onglet Partie, « Allumer le grand écran » le lève, « Écran noir » le rabaisse ; « Lancer la question 1 » (ou tout changement d'état) le lève automatiquement.
+
 L'animateur lance chaque question ; les tables ont le temps imparti (30 à 90 s) pour répondre ; il révèle la réponse et l'anecdote ; à la fin de chaque service (Entrée, Plat, Dessert) il affiche le classement. Points : 100 par bonne réponse + jusqu'à 50 de bonus de rapidité, calculés côté serveur. Une question peut avoir plusieurs bonnes réponses (case « Plusieurs bonnes réponses » dans l'éditeur) : la table coche tout ce qu'elle pense bon puis valide ; points au prorata (bonnes cochées moins mauvaises cochées, sur le nombre de bonnes), bonus de rapidité seulement si la sélection est exacte.
 
 ## Lancement

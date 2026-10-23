@@ -132,6 +132,7 @@ button.opt:not([disabled]):hover{border-color:var(--accent)}
 .screen .verdict strong{font-size:clamp(22px,3vw,32px)} .screen .verdict p{font-size:clamp(16px,2vw,22px)}
 @media (max-width:620px){.screen .options{grid-template-columns:1fr}}
 .qr{display:grid;place-items:center;gap:8px;padding:14px;background:#fff;border-radius:14px;align-self:center}
+.curtain{position:fixed;inset:0;background:#000;cursor:none}body.screen:has(.curtain){background:#000}
 .cartons-page{background:#fff}.cartons-tools{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:16px;border-bottom:1px solid var(--line)}
 .cartons{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;padding:16px}
 .carton{display:grid;justify-items:center;text-align:center;gap:6px;padding:18px 16px;border:1.5px dashed var(--line);border-radius:16px;background:#fff;color:var(--ink)}
@@ -680,6 +681,7 @@ const ScreenView = {
     const app = document.getElementById("app");
     if (!g) { app.innerHTML = `<section class="card menu-card"><div class="empty">Connexion…</div></section>`; return; }
     const n = Live.board.length;
+    if (g.curtain) { root.innerHTML = `<div class="curtain" title="Écran en attente"></div>`; return; }
     if (g.paused) { app.innerHTML = pauseHTML(null); return; }
     if (g.status === "finished") {
       const top = Live.board.slice(0, 3), rest = Live.board.slice(3);
@@ -852,6 +854,12 @@ async function setPause(paused){
   catch (e) { toast(humanError(e), true); if (/PIN/i.test(e.message || "")) { Admin.setPin(""); location.hash = "#/connexion"; } }
   Admin.busy = false;
 }
+async function setCurtain(on){
+  if (Admin.busy) return; Admin.busy = true;
+  try { await rpc("admin_curtain", { p_pin: Admin.pin(), p_on: on }); await Live.loadGame(); toast(on ? "Grand écran en noir" : "Grand écran allumé"); }
+  catch (e) { toast(humanError(e), true); if (/PIN/i.test(e.message || "")) { Admin.setPin(""); location.hash = "#/connexion"; } }
+  Admin.busy = false;
+}
 async function setGame(status, qid, seconds){
   if (Admin.busy) return; Admin.busy = true;
   try { await rpc("admin_set_game", { p_pin: Admin.pin(), p_status: status, p_question_id: qid, p_seconds: seconds ?? null }); await Live.loadGame(); await Live.loadBoard(); }
@@ -885,6 +893,7 @@ function renderPartie(el){
   const canPause = qs.length && g.status !== "lobby" && g.status !== "finished";
   if (g.paused) { main = `<button class="btn btn-primary" data-act="resume">Reprendre la partie</button>`; secondary = ""; }
   else if (canPause) secondary += `<button class="btn btn-ghost" data-act="pause">Mettre en pause</button>`;
+  if (qs.length) secondary += g.curtain ? `<button class="btn btn-ghost" data-act="curtain-off">Allumer le grand écran</button>` : `<button class="btn btn-ghost" data-act="curtain-on">Écran noir sur le grand écran</button>`;
 
   el.innerHTML = `
   <div class="kpis">
@@ -895,7 +904,7 @@ function renderPartie(el){
   </div>
   <section class="card fade">
     <div class="topbar">
-      <span class="pill ${g.paused ? "paused" : g.status}"><i></i>${g.paused ? "En pause · " + STATUS_LABEL[g.status].toLowerCase() : STATUS_LABEL[g.status]}</span>
+      <span class="pill ${g.paused ? "paused" : g.status}"><i></i>${g.paused ? "En pause · " + STATUS_LABEL[g.status].toLowerCase() : STATUS_LABEL[g.status]}${g.curtain ? " · écran noir" : ""}</span>
       <span class="live ${Live.connected ? "" : "off"}"><i></i>${Live.connected ? "temps réel actif" : "temps réel coupé, mise à jour toutes les 4 s"}</span>
     </div>
     ${q ? `
@@ -940,6 +949,7 @@ function renderPartie(el){
     else if (act === "finish") await setGame("finished", q.id);
     else if (act === "lobby") await setGame("lobby", null);
     else if (act === "pause" || act === "resume") await setPause(act === "pause");
+    else if (act === "curtain-on" || act === "curtain-off") await setCurtain(act === "curtain-on");
   });
 }
 
